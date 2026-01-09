@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-function MatchBoard({ myTeam, enemyTeam, myId, turn, score, onServe, gameLog, phase, onSet, onBlock }) {
+function MatchBoard({ myTeam, enemyTeam, myId, turn, score, onServe, gameLog, phase, ballTarget, onSet, onBlock }) {
     
     const isMyTurn = turn === myId;
     const scrollRef = useRef(null);
@@ -29,7 +29,14 @@ function MatchBoard({ myTeam, enemyTeam, myId, turn, score, onServe, gameLog, ph
                 await setBallToPosition('center');
                 await delay(400);
                 setBallInFlight(false);
-                await setBallToPosition(isMyTurn ? 'my-set' : 'enemy-set');
+                
+                // ✅ ИСПРАВЛЕНО: Учитываем ballTarget для правильной позиции
+                if (ballTarget === 3) {
+                    // Пайп - мяч летит на заднюю линию
+                    await setBallToPosition(isMyTurn ? 'my-pipe' : 'enemy-pipe');
+                } else {
+                    await setBallToPosition(isMyTurn ? 'my-set' : 'enemy-set');
+                }
                 await delay(600);
             }
             else if (phase === 'BLOCK') {
@@ -46,7 +53,7 @@ function MatchBoard({ myTeam, enemyTeam, myId, turn, score, onServe, gameLog, ph
         };
 
         animateBall();
-    }, [phase, isMyTurn]);
+    }, [phase, isMyTurn, ballTarget]); // ✅ Добавлена зависимость от ballTarget
 
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -59,7 +66,10 @@ function MatchBoard({ myTeam, enemyTeam, myId, turn, score, onServe, gameLog, ph
                 'enemy-set': { top: '36%', left: '50%', bottom: 'auto', opacity: 1, transform: 'scale(1)' },
                 'center': { top: '50%', left: '50%', bottom: 'auto', opacity: 1, transform: 'scale(1.1)' },
                 'mid-air-attack': { top: '40%', left: '50%', bottom: 'auto', opacity: 1, transform: 'scale(1.2) rotate(180deg)' },
-                'net': { top: '48%', left: '50%', bottom: 'auto', opacity: 1, transform: 'scale(1.4) rotate(360deg)' }
+                'net': { top: '48%', left: '50%', bottom: 'auto', opacity: 1, transform: 'scale(1.4) rotate(360deg)' },
+                // ✅ НОВОЕ: Позиции для пайпа
+                'my-pipe': { bottom: '12%', left: '50%', top: 'auto', opacity: 1, transform: 'scale(1.1)' },
+                'enemy-pipe': { top: '12%', left: '50%', bottom: 'auto', opacity: 1, transform: 'scale(1.1)' }
             };
             
             setBallPosition(positions[position] || { opacity: 0, transform: 'scale(1)' });
@@ -201,7 +211,7 @@ function MatchBoard({ myTeam, enemyTeam, myId, turn, score, onServe, gameLog, ph
                {isMyTurn && phase === 'SET' && !isAnimating && (
                    <div className="set-controls">
                        <button className="set-btn" onClick={() => onSet(4)}>⬅️ ЛЕВО</button>
-                       <button className="set-btn" onClick={() => onSet(3)}>⬆️ ЦЕНТР</button>
+                       <button className="set-btn" onClick={() => onSet(3)}>⬆️ ПАЙП</button>
                        <button className="set-btn" onClick={() => onSet(2)}>ПРАВО ➡️</button>
                    </div>
                )}

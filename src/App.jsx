@@ -30,6 +30,7 @@ function App() {
   const [score, setScore] = useState({ team1: 0, team2: 0 });
   const [gameLog, setGameLog] = useState(""); 
   const [phase, setPhase] = useState('SERVE');
+  const [ballTarget, setBallTarget] = useState(null); // ✅ НОВОЕ: Куда летит мяч при сете
 
   // ЭФФЕКТ 1: Основная логика
   useEffect(() => {
@@ -116,7 +117,8 @@ function App() {
 
     const onSetResult = (data) => {
         setTurn(data.nextTurn);      
-        setPhase(data.phase);        
+        setPhase(data.phase);
+        setBallTarget(data.targetPos); // ✅ НОВОЕ: Сохраняем куда летит мяч
         setNotification(data.message);
         setGameLog(prev => prev + '\n' + data.message);
     };
@@ -190,7 +192,8 @@ function App() {
                 score={score}
                 onServe={handleServe} 
                 gameLog={gameLog}     
-                phase={phase}         
+                phase={phase}
+                ballTarget={ballTarget} // ✅ НОВОЕ: Передаем куда летит мяч
                 onSet={handleSet}
                 onBlock={handleBlock}
             />

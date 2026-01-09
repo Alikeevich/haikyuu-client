@@ -101,49 +101,53 @@ function Draft({ socket, roomId, allCharacters }) {
 
             {/* Карточки на выбор */}
             <div className="draft-cards-wrapper">
-                {options.map((char) => (
-                    <div 
-                        key={char.id} 
-                        className={`draft-card-big ${hoveredChar?.id === char.id ? 'hovered' : ''}`}
-                        onClick={() => selectPlayer(char)}
-                        onMouseEnter={() => setHoveredChar(char)}
-                        onMouseLeave={() => setHoveredChar(null)}
-                    >
-                        <div className="draft-photo">
-                            {renderImg(char)}
-                        </div>
-                        <div className="draft-info">
-                            <div className="draft-name">{char.name}</div>
-                            <div className="draft-team">{char.team}</div>
-                            
-                            {/* СТАТЫ - всегда видны на мобильных */}
-                            <div className="draft-stats-full">
-                                <div className="stat-item">
-                                    <span className="stat-icon">⚔️</span>
-                                    <span className="stat-value">{char.stats.power}</span>
-                                    <span className="stat-label">PWR</span>
-                                </div>
-                                <div className="stat-item">
-                                    <span className="stat-icon">🛡️</span>
-                                    <span className="stat-value">{char.stats.receive}</span>
-                                    <span className="stat-label">RCV</span>
-                                </div>
-                                <div className="stat-item">
-                                    <span className="stat-icon">✋</span>
-                                    <span className="stat-value">{char.stats.block}</span>
-                                    <span className="stat-label">BLK</span>
-                                </div>
+                {options.map((char) => {
+                    const isBanned = bannedIds.includes(char.id);
+                    return (
+                        <div 
+                            key={char.id} 
+                            className={`draft-card-big ${hoveredChar?.id === char.id ? 'hovered' : ''} ${isBanned ? 'banned' : ''}`}
+                            onClick={() => !isBanned && selectPlayer(char)}
+                            onMouseEnter={() => !isBanned && setHoveredChar(char)}
+                            onMouseLeave={() => setHoveredChar(null)}
+                            style={{ cursor: isBanned ? 'not-allowed' : 'pointer' }}
+                        >
+                            {isBanned && <div className="banned-overlay">ЗАНЯТ</div>}
+                            <div className="draft-photo">
+                                {renderImg(char)}
                             </div>
-                            
-                            {char.quirk && (
-                                <div className="draft-quirk-box">
-                                    <div className="quirk-name">★ {char.quirk.name}</div>
-                                    <div className="quirk-desc">{char.quirk.desc}</div>
+                            <div className="draft-info">
+                                <div className="draft-name">{char.name}</div>
+                                <div className="draft-team">{char.team}</div>
+                                
+                                <div className="draft-stats-full">
+                                    <div className="stat-item">
+                                        <span className="stat-icon">⚔️</span>
+                                        <span className="stat-value">{char.stats.power}</span>
+                                        <span className="stat-label">PWR</span>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="stat-icon">🛡️</span>
+                                        <span className="stat-value">{char.stats.receive}</span>
+                                        <span className="stat-label">RCV</span>
+                                    </div>
+                                    <div className="stat-item">
+                                        <span className="stat-icon">✋</span>
+                                        <span className="stat-value">{char.stats.block}</span>
+                                        <span className="stat-label">BLK</span>
+                                    </div>
                                 </div>
-                            )}
+                                
+                                {char.quirk && (
+                                    <div className="draft-quirk-box">
+                                        <div className="quirk-name">★ {char.quirk.name}</div>
+                                        <div className="quirk-desc">{char.quirk.desc}</div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* Список уже выбранных */}
