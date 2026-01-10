@@ -41,6 +41,7 @@ function App() {
     const onGameStarted = (data) => {
         setAllCharacters(data.allCharacters);
         setGameState('draft');
+        setRoomId(data.roomId);
         setNotification("Драфт начался! Выбирай карты.");
     };
 
