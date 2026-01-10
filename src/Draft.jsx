@@ -9,13 +9,30 @@ const POSITIONS = [
     { id: 6, name: "ЗАЩИТА ЦЕНТР (Pos 6)", role: "DEF" },
 ];
 
-function Draft({ socket, roomId, allCharacters }) {
+function Draft({ socket, roomId, allCharacters, myId, draftTurn }) {
     const [currentSlot, setCurrentSlot] = useState(0); 
     const [myTeam, setMyTeam] = useState([]); 
     const [options, setOptions] = useState([]); 
     const [waiting, setWaiting] = useState(false);
     const [bannedIds, setBannedIds] = useState([]);
     const [hoveredChar, setHoveredChar] = useState(null); // Для показа статов
+    const [isMyTurn, setIsMyTurn] = useState(false); // По очереди в драфте
+
+    useEffect(() => {
+        const handleDraftTurn = (data) => {
+            setIsMyTurn(data.turn === socket.id || data.turn === myId);
+        };
+
+        socket.on('draft_turn', handleDraftTurn);
+        return () => socket.off('draft_turn', handleDraftTurn);
+    }, [socket, myId]);
+
+    // Если сервер уже прислал кто ходит — инициализируем состояние
+    useEffect(() => {
+        if (typeof draftTurn !== 'undefined' && draftTurn !== null) {
+            setIsMyTurn(draftTurn === socket.id || draftTurn === myId);
+        }
+    }, [draftTurn, myId, socket]);
 
     useEffect(() => {
         const handleBannedChars = (ids) => {
@@ -46,10 +63,16 @@ function Draft({ socket, roomId, allCharacters }) {
     }, [currentSlot, bannedIds]);
 
     const selectPlayer = (char) => {
+        if (!isMyTurn) {
+            alert('Сейчас не ваш ход в драфте');
+            return;
+        }
+
         const newPlayer = { ...char, position: POSITIONS[currentSlot].id };
         const updatedTeam = [...myTeam, newPlayer];
         setMyTeam(updatedTeam);
-        
+        setIsMyTurn(false); // ждём ход соперника
+
         socket.emit('character_picked', { roomId, charId: char.id });
         
         setCurrentSlot(currentSlot + 1); 
@@ -97,6 +120,9 @@ function Draft({ socket, roomId, allCharacters }) {
                 <div className="draft-subtitle">
                     Слот {currentSlot + 1}/6: <span className="highlight">{POSITIONS[currentSlot]?.name}</span>
                 </div>
+                <div style={{marginTop:8, fontSize:14, color: isMyTurn ? 'var(--color-success)' : 'var(--color-text-muted)'}}>
+                    {isMyTurn ? 'Ваш ход — выберите персонажа' : 'Ход соперника — ожидайте'}
+                </div>
             </div>
 
             {/* Карточки на выбор */}
@@ -107,10 +133,10 @@ function Draft({ socket, roomId, allCharacters }) {
                         <div 
                             key={char.id} 
                             className={`draft-card-big ${hoveredChar?.id === char.id ? 'hovered' : ''} ${isBanned ? 'banned' : ''}`}
-                            onClick={() => !isBanned && selectPlayer(char)}
-                            onMouseEnter={() => !isBanned && setHoveredChar(char)}
+                            onClick={() => { if (!isBanned && isMyTurn) selectPlayer(char); }}
+                            onMouseEnter={() => { if (!isBanned && isMyTurn) setHoveredChar(char); }}
                             onMouseLeave={() => setHoveredChar(null)}
-                            style={{ cursor: isBanned ? 'not-allowed' : 'pointer' }}
+                            style={{ cursor: isBanned || !isMyTurn ? 'not-allowed' : 'pointer' }}
                         >
                             {isBanned && <div className="banned-overlay">ЗАНЯТ</div>}
                             <div className="draft-photo">

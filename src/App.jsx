@@ -7,14 +7,7 @@ import './App.css';
 
 // 🌐 ПОДДЕРЖКА PRODUCTION И DEVELOPMENT
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3001";
-console.log("🔌 Подключение к серверу:", SOCKET_URL);
-
-const socket = io.connect(SOCKET_URL, {
-  transports: ['websocket', 'polling'],
-  reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000
-});
+const socket = io.connect(SOCKET_URL);
 
 function App() {
   const [gameState, setGameState] = useState('lobby');
@@ -23,6 +16,7 @@ function App() {
   const [notification, setNotification] = useState("");
   
   const [allCharacters, setAllCharacters] = useState([]);
+  const [draftTurn, setDraftTurn] = useState(null);
 
   const [teams, setTeams] = useState({ myTeam: [], enemyTeam: [] });
   const [myTeamIndex, setMyTeamIndex] = useState(null);
@@ -30,23 +24,12 @@ function App() {
   const [score, setScore] = useState({ team1: 0, team2: 0 });
   const [gameLog, setGameLog] = useState(""); 
   const [phase, setPhase] = useState('SERVE');
-  const [ballTarget, setBallTarget] = useState(null); // ✅ НОВОЕ: Куда летит мяч при сете
+  const [ballTarget, setBallTarget] = useState(null); 
+  const [lastAction, setLastAction] = useState(null);
 
-  // ЭФФЕКТ 1: Основная логика
   useEffect(() => {
-    socket.on('connect', () => {
-        setMyId(socket.id);
-        console.log("✅ Подключено! ID:", socket.id);
-    });
-
-    socket.on('connect_error', (error) => {
-        console.error("❌ Ошибка подключения:", error);
-        setNotification("Ошибка подключения к серверу");
-    });
-
-    socket.on('disconnect', () => {
-        console.log("⚠️ Отключено от сервера");
-    });
+    socket.on('connect', () => setMyId(socket.id));
+    socket.on('error_message', (msg) => alert(msg));
 
     const onGameCreated = (id) => {
         setRoomId(id);
@@ -60,8 +43,6 @@ function App() {
     };
 
     const onMatchStart = (data) => {
-        console.log("Старт матча:", data);
-        
         const amIPlayer1 = socket.id === data.players[0];
         setMyTeamIndex(amIPlayer1 ? 1 : 2);
         
@@ -82,26 +63,20 @@ function App() {
         setNotification("🏆 ИГРА ОКОНЧЕНА 🏆");
     };
 
-    const onError = (msg) => {
-        console.error("Ошибка:", msg);
-        alert(msg);
-    };
-
     socket.on('game_created', onGameCreated);
     socket.on('game_started', onGameStarted);
     socket.on('match_start', onMatchStart);
     socket.on('game_over', onGameOver);
-    socket.on('error_message', onError);
+    socket.on('draft_turn', (data) => setDraftTurn(data.turn));
 
     return () => {
         socket.off('connect');
-        socket.off('connect_error');
-        socket.off('disconnect');
-        socket.off('game_created', onGameCreated);
-        socket.off('game_started', onGameStarted);
-        socket.off('match_start', onMatchStart);
-        socket.off('game_over', onGameOver);
-        socket.off('error_message', onError);
+        socket.off('game_created');
+        socket.off('game_started');
+        socket.off('match_start');
+        socket.off('game_over');
+        socket.off('draft_turn');
+        socket.off('error_message');
     };
   }, []);
 
@@ -113,20 +88,38 @@ function App() {
         setNotification(data.message);
         setGameLog(prev => prev + '\n' + data.message);
         if (data.phase) setPhase(data.phase);
+        
+        // Анимация: кто подавал -> в поле
+        setLastAction({ type: 'SERVE', actorId: data.serverId, ts: Date.now() });
     };
 
     const onSetResult = (data) => {
         setTurn(data.nextTurn);      
         setPhase(data.phase);
-        setBallTarget(data.targetPos); // ✅ НОВОЕ: Сохраняем куда летит мяч
+        setBallTarget(data.targetPos);
         setNotification(data.message);
         setGameLog(prev => prev + '\n' + data.message);
+        
+        // Анимация: пас сеттера
+        setLastAction({ type: 'SET', actorId: data.setterId, targetPos: data.targetPos, ts: Date.now() });
+    };
+
+    const onSetMade = (data) => {
+        setTurn(data.nextTurn);
+        setPhase(data.phase);
+        setBallTarget(null);
+        setNotification(data.message);
+        setGameLog(prev => prev + '\n' + data.message);
+        
+        // Анимация: пас соперника (мы не видим куда, просто вверх)
+        setLastAction({ type: 'SET', actorId: data.setterId, ts: Date.now() });
     };
 
     const onSpikeResult = (data) => {
         setScore(data.score);
         setTurn(data.nextTurn);
-        setPhase(data.phase); 
+        setPhase(data.phase);
+        setBallTarget(null);
         
         if (data.team1 && data.team2 && myTeamIndex) {
             setTeams({
@@ -137,20 +130,24 @@ function App() {
         
         setNotification(data.message);
         setGameLog(prev => prev + '\n' + `${data.message} (${data.details})`);
+        
+        // Анимация удара
+        setLastAction({ type: 'SPIKE', ts: Date.now() });
     };
 
     socket.on('spike_result', onSpikeResult);
     socket.on('serve_result', onServeResult);
     socket.on('set_result', onSetResult);
+    socket.on('set_made', onSetMade);
 
     return () => {
-        socket.off('serve_result', onServeResult);
-        socket.off('set_result', onSetResult);
-        socket.off('spike_result', onSpikeResult);
+        socket.off('serve_result');
+        socket.off('set_result');
+        socket.off('spike_result');
+        socket.off('set_made');
     };
   }, [myTeamIndex]);
 
-  // ЭФФЕКТ 3: Таймер уведомлений
   useEffect(() => {
     if (notification) {
       const timer = setTimeout(() => setNotification(""), 4000);
@@ -167,20 +164,11 @@ function App() {
         {notification && <div className="notification">{notification}</div>}
 
         {gameState === 'lobby' && (
-            <Lobby 
-                socket={socket} 
-                roomId={roomId}          
-                setRoomId={setRoomId} 
-                setGameState={setGameState} 
-            />
+            <Lobby socket={socket} roomId={roomId} setRoomId={setRoomId} setGameState={setGameState} />
         )}
 
         {gameState === 'draft' && (
-            <Draft 
-                socket={socket} 
-                roomId={roomId} 
-                allCharacters={allCharacters} 
-            />
+            <Draft socket={socket} roomId={roomId} allCharacters={allCharacters} myId={myId} draftTurn={draftTurn} />
         )}
 
         {gameState === 'match' && (
@@ -193,7 +181,8 @@ function App() {
                 onServe={handleServe} 
                 gameLog={gameLog}     
                 phase={phase}
-                ballTarget={ballTarget} // ✅ НОВОЕ: Передаем куда летит мяч
+                ballTarget={ballTarget}
+                lastAction={lastAction}
                 onSet={handleSet}
                 onBlock={handleBlock}
             />
