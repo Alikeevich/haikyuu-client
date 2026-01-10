@@ -15,7 +15,7 @@ function App() {
   const [roomId, setRoomId] = useState("");
   const [myId, setMyId] = useState("");
   const [notification, setNotification] = useState("");
-  
+  const [triggerShake, setTriggerShake] = useState(false);
   const [allCharacters, setAllCharacters] = useState([]);
   const [draftTurn, setDraftTurn] = useState(null);
 
@@ -129,6 +129,11 @@ function App() {
             });
         }
         
+        if (data.isCritical) {
+            setTriggerShake(true);
+            setTimeout(() => setTriggerShake(false), 500); // Выключаем через 0.5 сек
+        }
+
         setNotification(data.message);
         setGameLog(prev => prev + '\n' + `${data.message} (${data.details})`);
         
@@ -186,6 +191,8 @@ function App() {
                 lastAction={lastAction}
                 onSet={handleSet}
                 onBlock={handleBlock}
+                triggerShake={triggerShake}
+                myTeamIndex={myTeamIndex}
             />
         )}
         <MusicPlayer />
