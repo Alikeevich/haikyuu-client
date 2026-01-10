@@ -9,7 +9,7 @@ function Lobby({ socket, roomId, setRoomId }) {
     };
 
     const createAIGame = () => {
-        socket.emit('create_ai_game'); // Новое событие для игры против ИИ
+        socket.emit('create_ai_game');
     };
 
     const joinGame = () => {
@@ -25,8 +25,9 @@ function Lobby({ socket, roomId, setRoomId }) {
         setTimeout(() => setIsCopied(false), 2000);
     };
 
-    // --- ЕСЛИ КОМНАТА СОЗДАНА, ПОКАЗЫВАЕМ ЭКРАН ОЖИДАНИЯ ---
-    if (roomId) {
+    // --- ЕСЛИ КОМНАТА СОЗДАНА (но НЕ AI), ПОКАЗЫВАЕМ ЭКРАН ОЖИДАНИЯ ---
+    // Для AI игры сразу идёт драфт, поэтому не показываем ожидание
+    if (roomId && !roomId.startsWith('AI-')) {
         return (
             <div className="lobby-container">
                 <h2>ОЖИДАНИЕ СОПЕРНИКА...</h2>
@@ -56,6 +57,7 @@ function Lobby({ socket, roomId, setRoomId }) {
     return (
         <div className="lobby-container">
             <h2>Haikyuu Tactics Online</h2>
+            <p className="lobby-subtitle">Карточная волейбольная битва</p>
             
             {/* НОВАЯ КАРТОЧКА - ПРОТИВ ИИ */}
             <div className="lobby-card featured">
