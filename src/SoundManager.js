@@ -1,38 +1,49 @@
 // client/src/SoundManager.js
 
-const sounds = {
-    whistle: new Audio('/sounds/whistle.mp3'),
-    serve: new Audio('/sounds/serve.mp3'),
-    spike: new Audio('/sounds/spike.mp3'),
-    bump: new Audio('/sounds/bump.mp3'), // Для приема и сейвов
-    set: new Audio('/sounds/set.mp3'),
-    monster_block: new Audio('/sounds/monster_block.mp3'),
-    soft_block: new Audio('/sounds/bump.mp3'), // Можно использовать тот же bump или найти отдельный
+// Объект с путями к файлам
+const soundFiles = {
+    whistle: '/sounds/whistle.mp3',
+    serve: '/sounds/serve.mp3',
+    spike: '/sounds/spike.mp3',
+    bump: '/sounds/bump.mp3',
+    set: '/sounds/set.mp3',
+    monster_block: '/sounds/monster_block.mp3',
+    soft_block: '/sounds/block.mp3', // Твой новый файл для смягчения
 };
 
-// Настройка громкости (чтобы уши не резало)
-const VOLUMES = {
-    whistle: 0.3,
-    serve: 0.5,
-    spike: 0.6,
-    bump: 0.4,
-    set: 0.3,
-    monster_block: 0.7,
-    soft_block: 0.4
-};
+// Хранилище загруженных объектов Audio
+const sounds = {};
 
-// Предзагрузка
-Object.keys(sounds).forEach(key => {
-    sounds[key].load();
-    sounds[key].volume = VOLUMES[key] || 0.5;
+// Предзагрузка звуков
+Object.keys(soundFiles).forEach(key => {
+    const audio = new Audio(soundFiles[key]);
+    audio.volume = 0.5; // Громкость по умолчанию (50%)
+    
+    // Индивидуальная настройка громкости
+    if (key === 'monster_block') audio.volume = 0.8;
+    if (key === 'spike') audio.volume = 0.7;
+    if (key === 'set') audio.volume = 0.3;
+    
+    sounds[key] = audio;
 });
 
 export const playSound = (name) => {
-    const audio = sounds[name];
-    if (audio) {
-        audio.currentTime = 0; // Перемотка в начало (чтобы можно было спамить)
-        audio.play().catch(e => console.error("Ошибка воспроизведения звука:", e));
+    const originalAudio = sounds[name];
+    
+    if (originalAudio) {
+        // МАГИЯ: Клонируем узел аудио. 
+        // Это позволяет играть один и тот же звук "поверх" себя, 
+        // если он вызывается часто (например, быстрый розыгрыш), 
+        // и решает проблему "проглатывания" звуков.
+        const clone = originalAudio.cloneNode();
+        clone.volume = originalAudio.volume;
+        
+        clone.play().catch(e => {
+            // Игнорируем ошибку "The user didn't interact first"
+            // (Пока пользователь не кликнет по сайту первый раз, звуки могут не играть - это защита браузера)
+            console.warn("Звук не сыграл (нужен клик):", e);
+        });
     } else {
-        console.warn(`Звук ${name} не найден!`);
+        console.warn(`Звук "${name}" не найден! Проверь название файла.`);
     }
 };

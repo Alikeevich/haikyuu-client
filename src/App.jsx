@@ -154,28 +154,26 @@ function App() {
 
         setNotification(data.message);
         setGameLog(prev => prev + '\n' + `${data.message} (${data.details})`);
-        
-        // Анимация удара
         setLastAction({ type: 'SPIKE', ts: Date.now() });
         const msg = data.message;
 
-        // 1. МОНСТР БЛОК (Kill Block)
-        if (msg.includes("KILL BLOCK") || msg.includes("МОНСТР-БЛОК")) {
-            playSound('monster_block'); // Звук стены
+        if (msg.includes("KILL BLOCK") || msg.includes("МОНСТР")) {
+            // Жесткий блок (Стена)
+            playSound('monster_block'); 
             setTimeout(() => playSound('whistle'), 500);
         }
-        // 2. СМЯГЧЕНИЕ (Soft Block)
         else if (msg.includes("Смягчение") || msg.includes("SOFT")) {
-            playSound('soft_block'); // Глухой звук касания блока
+            // Твой новый звук для мягкого блока
+            playSound('soft_block'); 
         }
-        // 3. ГОЛ (Чистая сетка или пробил блок)
         else if (msg.includes("ГОЛ") || msg.includes("ЧИСТАЯ СЕТКА") || msg.includes("Пробил")) {
-            playSound('spike'); // Мощный удар об пол
+            // Гол (Удар об пол)
+            playSound('spike'); 
             setTimeout(() => playSound('whistle'), 600);
         }
-        // 4. СЕЙВ (Либеро тащит)
         else if (msg.includes("ТАЩИТ") || msg.includes("СЕЙВ")) {
-            playSound('bump'); // Звук приема в падении
+            // Сейв (Прием)
+            playSound('bump'); 
         }
     };
 
