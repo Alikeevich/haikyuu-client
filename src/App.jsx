@@ -5,6 +5,7 @@ import Draft from './Draft';
 import MatchBoard from './MatchBoard';
 import './App.css';
 import MusicPlayer from './MusicPlayer';
+import { playSound } from './SoundManager';
 
 // 🌐 ПОДДЕРЖКА PRODUCTION И DEVELOPMENT
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3001";
@@ -46,6 +47,7 @@ function App() {
     const onMatchStart = (data) => {
         const amIPlayer1 = socket.id === data.players[0];
         setMyTeamIndex(amIPlayer1 ? 1 : 2);
+        playSound('whistle');
         
         setTeams({ 
             myTeam: amIPlayer1 ? data.team1 : data.team2, 
@@ -90,8 +92,23 @@ function App() {
         setGameLog(prev => prev + '\n' + data.message);
         if (data.phase) setPhase(data.phase);
         
-        // Анимация: кто подавал -> в поле
+        // Анимация мяча
         setLastAction({ type: 'SERVE', actorId: data.serverId, ts: Date.now() });
+
+        // --- НОВОЕ: ТРЯСКА ЭКРАНА ПРИ МОЩНОМ ЭЙСЕ ---
+        if (data.isCritical) {
+            setTriggerShake(true);
+            setTimeout(() => setTriggerShake(false), 500);
+        }
+
+        if (data.message.includes("ЭЙС")) {
+            playSound('serve'); // Звук мощной подачи
+            setTimeout(() => playSound('whistle'), 600); // Свисток очка через полсекунды
+        } 
+        // Если это Прием
+        else {
+            playSound('bump'); // Звук приема
+        }
     };
 
     const onSetResult = (data) => {
@@ -100,6 +117,7 @@ function App() {
         setBallTarget(data.targetPos);
         setNotification(data.message);
         setGameLog(prev => prev + '\n' + data.message);
+        playSound('set');
         
         // Анимация: пас сеттера
         setLastAction({ type: 'SET', actorId: data.setterId, targetPos: data.targetPos, ts: Date.now() });
@@ -139,6 +157,26 @@ function App() {
         
         // Анимация удара
         setLastAction({ type: 'SPIKE', ts: Date.now() });
+        const msg = data.message;
+
+        // 1. МОНСТР БЛОК (Kill Block)
+        if (msg.includes("KILL BLOCK") || msg.includes("МОНСТР-БЛОК")) {
+            playSound('monster_block'); // Звук стены
+            setTimeout(() => playSound('whistle'), 500);
+        }
+        // 2. СМЯГЧЕНИЕ (Soft Block)
+        else if (msg.includes("Смягчение") || msg.includes("SOFT")) {
+            playSound('soft_block'); // Глухой звук касания блока
+        }
+        // 3. ГОЛ (Чистая сетка или пробил блок)
+        else if (msg.includes("ГОЛ") || msg.includes("ЧИСТАЯ СЕТКА") || msg.includes("Пробил")) {
+            playSound('spike'); // Мощный удар об пол
+            setTimeout(() => playSound('whistle'), 600);
+        }
+        // 4. СЕЙВ (Либеро тащит)
+        else if (msg.includes("ТАЩИТ") || msg.includes("СЕЙВ")) {
+            playSound('bump'); // Звук приема в падении
+        }
     };
 
     socket.on('spike_result', onSpikeResult);
