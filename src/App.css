@@ -1345,3 +1345,123 @@ input[type="text"]:focus {
 .debris:nth-child(4) { top: 38%; left: 49%; animation: debris-fall-4 0.6s ease-out forwards; width: 7px; height: 7px; }
 .debris:nth-child(5) { top: 50%; left: 50%; animation: debris-fall-1 0.7s ease-out forwards; }
 .debris:nth-child(6) { top: 50%; left: 50%; animation: debris-fall-2 0.8s ease-out forwards; }
+
+/* --- 1. CUT-IN (КАТ-ИН СПОСОБНОСТИ) --- */
+.cut-in-overlay {
+    position: fixed;
+    top: 30%; left: 0; width: 100%; height: 200px;
+    background: rgba(0,0,0,0.8);
+    display: flex; align-items: center; justify-content: space-between;
+    z-index: 9000;
+    overflow: hidden;
+    border-top: 4px solid #fca311;
+    border-bottom: 4px solid #fca311;
+    animation: cutInSlide 2.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+    pointer-events: none; /* Чтобы не мешал кликать */
+}
+
+.cut-in-char {
+    height: 120%;
+    width: auto;
+    transform: skewX(-20deg) translateX(-50px);
+    opacity: 0;
+    animation: charSlideIn 0.5s 0.2s forwards ease-out;
+}
+
+.cut-in-text {
+    font-family: 'Teko', sans-serif;
+    color: white;
+    text-align: right;
+    padding-right: 50px;
+    text-transform: uppercase;
+    text-shadow: 4px 4px 0 #000;
+}
+
+.cut-in-skill {
+    font-size: 80px;
+    line-height: 0.8;
+    color: #fca311;
+    display: block;
+    transform: translateX(100px);
+    opacity: 0;
+    animation: textSlideIn 0.5s 0.4s forwards;
+}
+
+.cut-in-name {
+    font-size: 40px;
+    color: #ccc;
+    display: block;
+    transform: translateX(100px);
+    opacity: 0;
+    animation: textSlideIn 0.5s 0.5s forwards;
+}
+
+@keyframes cutInSlide {
+    0% { transform: translateX(-100%); }
+    20% { transform: translateX(0); }
+    80% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(100%); opacity: 0; }
+}
+@keyframes charSlideIn { from { transform: skewX(-20deg) translateX(-100px); opacity: 0; } to { transform: skewX(-20deg) translateX(0); opacity: 1; } }
+@keyframes textSlideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+
+/* --- 2. ПОЛУЧЕНИЕ УРОНА (DAMAGE SHAKE) --- */
+.taking-damage {
+    animation: damageShake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+/* В момент удара карточка краснеет */
+.taking-damage .card-info {
+    background: rgba(230, 0, 18, 0.9) !important;
+}
+.taking-damage .card-photo-container img {
+    filter: sepia(1) hue-rotate(-50deg) saturate(3); /* Эффект боли */
+}
+
+@keyframes damageShake {
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+    40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+
+/* --- 3. ПРЫЖОК БЛОКА (BLOCK POSE) --- */
+/* Класс вешается на переднюю линию (2, 3, 4) при фазе BLOCK */
+.player-card.block-pose {
+    transform: translateY(-15px) scale(1.15) !important; /* Подпрыгивают и увеличиваются */
+    box-shadow: 0 15px 30px rgba(0,0,0,0.8) !important;
+    border-color: #fca311 !important;
+    z-index: 10 !important;
+}
+.player-card.block-pose .card-info {
+    background: rgba(252, 163, 17, 0.9);
+    color: black;
+}
+
+
+/* --- 4. ВСПЛЫВАЮЩИЕ ЦИФРЫ (FLOATING TEXT) --- */
+.floating-text {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Teko', sans-serif;
+    font-size: 28px;
+    font-weight: bold;
+    text-shadow: 2px 2px 0 #000;
+    pointer-events: none;
+    z-index: 100;
+    animation: floatUp 1.5s ease-out forwards;
+    white-space: nowrap;
+}
+
+.ft-atk { color: #fca311; } /* Атака - оранжевый */
+.ft-def-win { color: #4cd137; font-size: 32px; } /* Успешный деф - зеленый */
+.ft-def-lose { color: #e60012; } /* Провал дефа - красный */
+
+@keyframes floatUp {
+    0% { transform: translateX(-50%) translateY(0) scale(0.5); opacity: 0; }
+    20% { transform: translateX(-50%) translateY(-20px) scale(1.2); opacity: 1; }
+    100% { transform: translateX(-50%) translateY(-60px) scale(1); opacity: 0; }
+}

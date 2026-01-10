@@ -99,7 +99,12 @@ function App() {
         if (data.phase) setPhase(data.phase);
         
         // Анимация мяча
-        setLastAction({ type: 'SERVE', actorId: data.serverId, ts: Date.now() });
+        setLastAction({ 
+            type: 'SERVE', 
+            actorId: data.serverId, 
+            ts: Date.now(),
+            data: data // <--- СОХРАНЯЕМ ВСЕ ДАННЫЕ (там valAtk, valDef)
+        });
 
         const msg = data.message;
 
@@ -171,7 +176,7 @@ function App() {
 
         setNotification(data.message);
         setGameLog(prev => prev + '\n' + `${data.message} (${data.details})`);
-        setLastAction({ type: 'SPIKE', ts: Date.now() });
+        setLastAction({ type: 'SPIKE', ts: Date.now(), data: data });
         
         const msg = data.message;
         const details = data.details || '';
