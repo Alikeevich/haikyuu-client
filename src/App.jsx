@@ -92,25 +92,26 @@ function App() {
   // ЭФФЕКТ 2: Игровой процесс
   useEffect(() => {
     const onServeResult = (data) => {
+        console.log('🎾 SERVE RESULT:', data.message);
+        
         setScore(data.score);
         setTurn(data.nextTurn);
         setNotification(data.message);
         setGameLog(prev => prev + '\n' + data.message);
         if (data.phase) setPhase(data.phase);
         
-        // Анимация мяча
         setLastAction({ 
             type: 'SERVE', 
             actorId: data.serverId, 
             ts: Date.now(),
-            data: data // <--- СОХРАНЯЕМ ВСЕ ДАННЫЕ (там valAtk, valDef)
+            data: data
         });
 
-        const msg = data.message;
+        const msg = data.message.toLowerCase();
 
         // 🔊 ЛОГИКА ЗВУКОВ ДЛЯ ПОДАЧИ
-        if (msg.includes("ЭЙС")) {
-            // Мощная подача → звук удара → пауза → свисток (ОЧКО!)
+        if (msg.includes("эйс")) {
+            console.log('🔊 Играем: serve + whistle (ЭЙС)');
             playSound('serve');
             if (data.isCritical) {
                 setTriggerShake(true);
@@ -118,50 +119,44 @@ function App() {
             }
             setTimeout(() => playSound('whistle'), 800);
         } 
-        else if (msg.includes("Прием")) {
-            // Подача принята → только звук приема (разыгрыш продолжается)
-            playSound('bump');
-        }
-        else if (msg.includes("АУТ") || msg.includes("В СЕТКУ")) {
-            // Ошибка подающего → звук удара → свисток (ОЧКО!)
-            playSound('serve');
-            setTimeout(() => playSound('whistle'), 600);
-        }
         else {
-            // Другие исходы
+            // Прием подачи (разыгрыш продолжается)
+            console.log('🔊 Играем: bump (прием)');
             playSound('bump');
         }
     };
 
     const onSetResult = (data) => {
+        console.log('🏐 SET RESULT:', data.message);
+        
         setTurn(data.nextTurn);      
         setPhase(data.phase);
         setBallTarget(data.targetPos);
         setNotification(data.message);
         setGameLog(prev => prev + '\n' + data.message);
         
-        // 🔊 Звук паса (мой сеттер делает пас)
         playSound('set');
         
-        // Анимация: пас сеттера
         setLastAction({ type: 'SET', actorId: data.setterId, targetPos: data.targetPos, ts: Date.now() });
     };
 
     const onSetMade = (data) => {
+        console.log('🏐 SET MADE:', data.message);
+        
         setTurn(data.nextTurn);
         setPhase(data.phase);
         setBallTarget(null);
         setNotification(data.message);
         setGameLog(prev => prev + '\n' + data.message);
         
-        // 🔊 Звук паса (сеттер соперника делает пас)
         playSound('set');
         
-        // Анимация: пас соперника
         setLastAction({ type: 'SET', actorId: data.setterId, ts: Date.now() });
     };
 
     const onSpikeResult = (data) => {
+        console.log('💥 SPIKE RESULT:', data.message, '| Details:', data.details);
+        
         setScore(data.score);
         setTurn(data.nextTurn);
         setPhase(data.phase);
@@ -178,49 +173,54 @@ function App() {
         setGameLog(prev => prev + '\n' + `${data.message} (${data.details})`);
         setLastAction({ type: 'SPIKE', ts: Date.now(), data: data });
         
-        const msg = data.message;
-        const details = data.details || '';
+        const msg = data.message.toLowerCase();
+        const details = (data.details || '').toLowerCase();
 
         // 🔊 ДЕТАЛЬНАЯ ЛОГИКА ЗВУКОВ ДЛЯ АТАКИ
 
-        // 1. KILL BLOCK (ЖЕСТКИЙ БЛОК) → ОЧКО
-        if (msg.includes("KILL BLOCK") || msg.includes("МОНСТР")) {
+        // 1. KILL BLOCK → ОЧКО
+        if (msg.includes("monster block") || msg.includes("заблокировал")) {
+            console.log('🔊 Играем: monster_block + whistle (KILL BLOCK)');
             playSound('monster_block');
             if (data.isCritical) {
                 setTriggerShake(true);
                 setTimeout(() => setTriggerShake(false), 500);
             }
-            setTimeout(() => playSound('whistle'), 700); // Свисток - очко закончено
+            setTimeout(() => playSound('whistle'), 700);
         }
         
-        // 2. МЯГКИЙ БЛОК → РАЗЫГРЫШ ПРОДОЛЖАЕТСЯ
-        else if (msg.includes("Смягчение") || msg.includes("SOFT") || (msg.includes("блок") && !msg.includes("KILL"))) {
-            playSound('soft_block'); // Без свистка - мяч в игре!
-        }
-        
-        // 3. ГОЛ / ЧИСТАЯ АТАКА → ОЧКО
-        else if (msg.includes("ГОЛ") || msg.includes("ЧИСТАЯ СЕТКА") || msg.includes("Пробил")) {
+        // 2. ГОЛ → ОЧКО
+        else if (msg.includes("гол") || msg.includes("пробил защиту")) {
+            console.log('🔊 Играем: spike + whistle (ГОЛ)');
             playSound('spike');
             if (data.isCritical) {
                 setTriggerShake(true);
                 setTimeout(() => setTriggerShake(false), 500);
             }
-            setTimeout(() => playSound('whistle'), 700); // Свисток - очко закончено
+            setTimeout(() => playSound('whistle'), 700);
         }
         
-        // 4. ЗАЩИТА / ПРИЕМ → РАЗЫГРЫШ ПРОДОЛЖАЕТСЯ
-        else if (msg.includes("ТАЩИТ") || msg.includes("СЕЙВ") || msg.includes("Прием")) {
-            playSound('bump'); // Без свистка - мяч отбит!
+        // 3. СМЯГЧЕНИЕ БЛОКОМ → ПРОДОЛЖЕНИЕ
+        else if (msg.includes("смягчение")) {
+            console.log('🔊 Играем: soft_block (смягчение)');
+            playSound('soft_block');
         }
         
-        // 5. АУТ / ОШИБКА АТАКУЮЩЕГО → ОЧКО
-        else if (msg.includes("АУТ") || msg.includes("В СЕТКУ") || details.includes("аут") || details.includes("сетку")) {
+        // 4. ЧИСТАЯ СЕТКА → ЗВУК УДАРА БЕЗ СВИСТКА
+        else if (msg.includes("чистая сетка")) {
+            console.log('🔊 Играем: spike (чистая)');
             playSound('spike');
-            setTimeout(() => playSound('whistle'), 600); // Свисток - очко закончено
         }
         
-        // 6. FALLBACK (если ничего не подошло - вероятно разыгрыш продолжается)
+        // 5. ЗАЩИТА/ПРИЕМ → ПРОДОЛЖЕНИЕ
+        else if (msg.includes("тащит") || msg.includes("поднял")) {
+            console.log('🔊 Играем: bump (защита)');
+            playSound('bump');
+        }
+        
+        // 6. FALLBACK
         else {
+            console.log('🔊 Играем: bump (fallback)');
             playSound('bump');
         }
     };
