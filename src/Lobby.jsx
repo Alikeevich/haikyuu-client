@@ -8,6 +8,10 @@ function Lobby({ socket, roomId, setRoomId }) {
         socket.emit('create_game');
     };
 
+    const createAIGame = () => {
+        socket.emit('create_ai_game'); // Новое событие для игры против ИИ
+    };
+
     const joinGame = () => {
         if (inputCode) {
             socket.emit('join_game', inputCode);
@@ -53,6 +57,17 @@ function Lobby({ socket, roomId, setRoomId }) {
         <div className="lobby-container">
             <h2>Haikyuu Tactics Online</h2>
             
+            {/* НОВАЯ КАРТОЧКА - ПРОТИВ ИИ */}
+            <div className="lobby-card featured">
+                <h3>🤖 Играть против компьютера</h3>
+                <p className="ai-description">Тренировочный матч против умного ИИ</p>
+                <button className="btn-ai" onClick={createAIGame}>
+                    НАЧАТЬ ИГРУ VS AI
+                </button>
+            </div>
+
+            <div className="divider">ИЛИ</div>
+
             <div className="lobby-card">
                 <h3>Создать новую игру</h3>
                 <button className="btn-primary" onClick={createGame}>
