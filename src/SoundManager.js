@@ -2,42 +2,63 @@
 
 // 🎵 КАРТА ЗВУКОВ С ОПИСАНИЕМ
 const soundFiles = {
-    whistle: '/sounds/whistle.mp3',        // Свисток судьи (очко, начало/конец)
-    serve: '/sounds/serve.mp3',            // Мощная подача / удар
-    spike: '/sounds/spike.mp3',            // Атака (удар об пол)
-    bump: '/sounds/bump.mp3',              // Прием / защита
-    set: '/sounds/set.mp3',                // Пас сеттера
-    monster_block: '/sounds/monster_block.mp3', // Жесткий блок
-    soft_block: '/sounds/block.mp3',       // Мягкий блок / смягчение
+    whistle: '/sounds/whistle.mp3',
+    serve: '/sounds/serve.mp3',
+    spike: '/sounds/spike.mp3',
+    bump: '/sounds/bump.mp3',
+    set: '/sounds/set.mp3',
+    monster_block: '/sounds/monster_block.mp3',
+    soft_block: '/sounds/block.mp3',
 };
 
-// 🎯 НАСТРОЙКИ ГРОМКОСТИ ДЛЯ КАЖДОГО ЗВУКА
+// 🎯 НАСТРОЙКИ ГРОМКОСТИ
 const volumeSettings = {
-    whistle: 0.6,        // Свисток средней громкости
-    serve: 0.7,          // Мощная подача громко
-    spike: 0.75,         // Атака очень громко
-    bump: 0.5,           // Прием умеренно
-    set: 0.35,           // Пас тихо (не должен перекрывать другие звуки)
-    monster_block: 0.85, // Блок максимально громко
-    soft_block: 0.5,     // Мягкий блок умеренно
+    whistle: 0.6,
+    serve: 0.7,
+    spike: 0.75,
+    bump: 0.5,
+    set: 0.35,
+    monster_block: 0.85,
+    soft_block: 0.5,
 };
 
-// 📦 ПУЛ АУДИО-ОБЪЕКТОВ (для одновременного воспроизведения)
-const POOL_SIZE = 6; // Увеличен пул для быстрых комбо
+// 📦 ПУЛ АУДИО-ОБЪЕКТОВ
+const POOL_SIZE = 8; // Увеличен для надежности
 const soundPools = {};
+let isAudioUnlocked = false;
+
+// 🚫 ЗАЩИТА ОТ СПАМА (debounce)
+const lastPlayTime = {};
+const MIN_INTERVAL = {
+    whistle: 400,  // Свисток не чаще раза в 400ms
+    serve: 100,
+    spike: 100,
+    bump: 50,
+    set: 80,
+    monster_block: 200,
+    soft_block: 100,
+};
 
 // 🔧 ИНИЦИАЛИЗАЦИЯ ПУЛОВ
 Object.keys(soundFiles).forEach(key => {
     soundPools[key] = [];
+    lastPlayTime[key] = 0;
     
     for (let i = 0; i < POOL_SIZE; i++) {
         const audio = new Audio(soundFiles[key]);
         audio.preload = 'auto';
         audio.volume = volumeSettings[key] || 0.5;
         
-        // Добавляем обработчик ошибок загрузки
+        // Важно: загружаем звук сразу
+        audio.load();
+        
         audio.addEventListener('error', (e) => {
-            console.warn(`⚠️ Ошибка загрузки звука "${key}":`, e);
+            console.error(`❌ Не удалось загрузить звук "${key}":`, soundFiles[key]);
+        });
+        
+        // При окончании воспроизведения сбрасываем
+        audio.addEventListener('ended', () => {
+            audio.currentTime = 0;
         });
         
         soundPools[key].push(audio);
@@ -49,86 +70,113 @@ export const playSound = (name, volumeMultiplier = 1.0) => {
     const pool = soundPools[name];
     
     if (!pool) {
-        console.warn(`❌ Звук "${name}" не найден в библиотеке!`);
+        console.warn(`❌ Звук "${name}" не найден!`);
         return;
     }
 
-    // Ищем свободный аудио-объект
-    let availableSound = pool.find(audio => audio.paused || audio.ended || audio.currentTime === 0);
+    // 🚫 ЗАЩИТА ОТ СПАМА
+    const now = Date.now();
+    const minInterval = MIN_INTERVAL[name] || 100;
     
-    // Если все заняты, берем тот, который играет дольше всего
-    if (!availableSound) {
-        availableSound = pool.reduce((prev, current) => 
-            current.currentTime > prev.currentTime ? current : prev
-        );
+    if (now - lastPlayTime[name] < minInterval) {
+        console.log(`⏭️ Звук "${name}" пропущен (антиспам)`);
+        return;
     }
     
-    // Применяем множитель громкости (для динамических эффектов)
+    lastPlayTime[name] = now;
+
+    // Ищем ДЕЙСТВИТЕЛЬНО свободный аудио
+    let availableSound = null;
+    
+    for (let audio of pool) {
+        if (audio.paused && audio.currentTime === 0) {
+            availableSound = audio;
+            break;
+        }
+    }
+    
+    // Если не нашли полностью свободный, ищем хотя бы завершенный
+    if (!availableSound) {
+        availableSound = pool.find(audio => audio.paused);
+    }
+    
+    // Если всё занято - прерываем самый старый
+    if (!availableSound) {
+        availableSound = pool[0];
+        console.log(`⚠️ Все аудио заняты, прерываем для "${name}"`);
+    }
+    
+    // Применяем громкость
     const baseVolume = volumeSettings[name] || 0.5;
     availableSound.volume = Math.min(1.0, baseVolume * volumeMultiplier);
     
-    // Перематываем и играем
+    // Сбрасываем и играем
     availableSound.currentTime = 0;
     
-    availableSound.play().catch(e => {
-        // Игнорируем прерывание воспроизведения (нормальное поведение при быстрой игре)
-        if (!e.message.includes('interrupted') && !e.message.includes('interact')) {
-            console.warn(`⚠️ Не удалось воспроизвести "${name}":`, e.message);
-        }
-    });
-};
-
-// 🔓 РАЗБЛОКИРОВКА ЗВУКОВ (для обхода ограничений браузера)
-export const unlockAudio = () => {
-    Object.values(soundPools).forEach(pool => {
-        pool.forEach(audio => {
-            // Играем и сразу останавливаем (трюк для разблокировки)
-            const playPromise = audio.play();
-            
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    audio.pause();
-                    audio.currentTime = 0;
-                }).catch(() => {
-                    // Игнорируем ошибки разблокировки
-                });
+    const playPromise = availableSound.play();
+    
+    if (playPromise !== undefined) {
+        playPromise.catch(e => {
+            if (e.name === 'NotAllowedError' && !isAudioUnlocked) {
+                console.warn('🔇 Звуки заблокированы браузером. Нужен клик пользователя.');
+            } else if (!e.message.includes('interrupted')) {
+                console.warn(`⚠️ Ошибка воспроизведения "${name}":`, e.message);
             }
         });
-    });
+    }
 };
 
-// 🎮 АВТОМАТИЧЕСКАЯ РАЗБЛОКИРОВКА ПРИ ПЕРВОМ ВЗАИМОДЕЙСТВИИ
-if (typeof document !== 'undefined') {
-    let isUnlocked = false;
+// 🔓 РАЗБЛОКИРОВКА ЗВУКОВ
+export const unlockAudio = () => {
+    if (isAudioUnlocked) return;
     
-    const unlock = () => {
-        if (!isUnlocked) {
-            unlockAudio();
-            isUnlocked = true;
-            
-            // Удаляем слушатели после первого взаимодействия
-            document.removeEventListener('click', unlock);
-            document.removeEventListener('touchstart', unlock);
-            document.removeEventListener('keydown', unlock);
-            
-            console.log('🔊 Звуковая система разблокирована!');
+    console.log('🔓 Разблокируем звуки...');
+    
+    let unlocked = 0;
+    
+    Object.values(soundPools).forEach(pool => {
+        const audio = pool[0]; // Берем первый из пула
+        
+        const playPromise = audio.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                audio.pause();
+                audio.currentTime = 0;
+                unlocked++;
+            }).catch(() => {
+                // Игнорируем
+            });
         }
+    });
+    
+    setTimeout(() => {
+        if (unlocked > 0) {
+            isAudioUnlocked = true;
+            console.log(`✅ Разблокировано ${unlocked} звуков!`);
+        }
+    }, 100);
+};
+
+// 🎮 АВТОМАТИЧЕСКАЯ РАЗБЛОКИРОВКА
+if (typeof document !== 'undefined') {
+    const unlock = () => {
+        unlockAudio();
+        document.removeEventListener('click', unlock);
+        document.removeEventListener('touchstart', unlock);
+        document.removeEventListener('keydown', unlock);
     };
     
-    // Слушаем любое взаимодействие пользователя
-    document.addEventListener('click', unlock);
-    document.addEventListener('touchstart', unlock);
-    document.addEventListener('keydown', unlock);
+    document.addEventListener('click', unlock, { once: true });
+    document.addEventListener('touchstart', unlock, { once: true });
+    document.addEventListener('keydown', unlock, { once: true });
 }
 
-// 🎛️ ДОПОЛНИТЕЛЬНЫЕ УТИЛИТЫ
-
-// Функция для проигрывания звука с задержкой
+// 🎛️ УТИЛИТЫ
 export const playSoundDelayed = (name, delayMs, volumeMultiplier = 1.0) => {
     setTimeout(() => playSound(name, volumeMultiplier), delayMs);
 };
 
-// Функция для последовательного воспроизведения звуков
 export const playSoundSequence = (sequence) => {
     let totalDelay = 0;
     
@@ -137,9 +185,3 @@ export const playSoundSequence = (sequence) => {
         playSoundDelayed(name, totalDelay, volume);
     });
 };
-
-// Пример использования последовательности:
-// playSoundSequence([
-//     { name: 'spike', delay: 0 },
-//     { name: 'whistle', delay: 700 }
-// ]);
