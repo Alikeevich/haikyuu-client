@@ -1120,3 +1120,48 @@ input[type="text"]:focus {
     height: 60px;
   }
 }
+
+.match-container {
+    /* dvh (dynamic viewport height) учитывает плавающую адресную строку браузера */
+    height: 100dvh !important; 
+    /* Добавляем отступ сверху для "челок" и вырезов камер */
+    padding-top: max(10px, env(safe-area-inset-top)) !important;
+    padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    overflow: hidden !important;
+}
+
+/* 2. Фиксируем табло счета, чтобы его не сжимало */
+.score-board {
+    /* Запрещаем сжимать табло, если места мало */
+    flex-shrink: 0 !important; 
+    /* Поднимаем слой выше всего остального (кроме уведомлений) */
+    z-index: 500 !important;
+    /* Гарантируем, что оно видно */
+    position: relative;
+    /* Чуть уменьшим отступы на мелких экранах */
+    margin-top: 0 !important;
+}
+
+/* 3. Адаптация под очень узкие экраны */
+@media (max-width: 400px) {
+    .score-board {
+        padding: 5px 15px !important;
+        width: 98% !important;
+    }
+    
+    .team-score strong {
+        font-size: 32px !important; /* Чуть меньше цифры, чтобы влезали */
+    }
+    
+    .vs {
+        font-size: 20px !important;
+    }
+}
+
+/* 4. Если проблема в том, что поле слишком большое и выталкивает счет */
+.board-wrapper {
+    /* Разрешаем полю чуть сжиматься, если экран совсем маленький,
+       но сохраняем пропорции, чтобы счет остался виден */
+    flex-shrink: 1;
+    max-height: 65vh; /* Ограничиваем высоту поля */
+}
