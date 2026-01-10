@@ -41,7 +41,6 @@ function App() {
     const onGameStarted = (data) => {
         setAllCharacters(data.allCharacters);
         setGameState('draft');
-        setRoomId(data.roomId);
         setNotification("Драфт начался! Выбирай карты.");
     };
 
@@ -72,19 +71,6 @@ function App() {
             setNotification("🏆 ИГРА ОКОНЧЕНА 🏆");
         }, 500);
     };
-
-    const createAIGame = () => {
-        socket.emit('create_ai_game');
-        // Таймаут на ожидание 'game_started' (если не пришло — ошибка)
-        setTimeout(() => {
-            if (gameState !== 'draft') alert('Ошибка: не удалось начать игру против ИИ. Проверьте соединение.');
-        }, 5000);
-    };
-
-    useEffect(() => {
-        socket.on('connect', () => console.log('Сокет подключён'));
-        socket.on('connect_error', (err) => console.error('Ошибка сокета:', err));
-    }, []);
 
     socket.on('game_created', onGameCreated);
     socket.on('game_started', onGameStarted);
@@ -268,7 +254,7 @@ function App() {
         {notification && <div className="notification">{notification}</div>}
 
         {gameState === 'lobby' && (
-            <Lobby socket={socket} roomId={roomId} setRoomId={setRoomId} setGameState={setGameState} />
+            <Lobby socket={socket} roomId={roomId} setRoomId={setRoomId} />
         )}
 
         {gameState === 'draft' && (
