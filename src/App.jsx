@@ -4,6 +4,7 @@ import Lobby from './Lobby';
 import Draft from './Draft';
 import MatchBoard from './MatchBoard';
 import './App.css';
+import MusicPlayer from './MusicPlayer';
 
 // 🌐 ПОДДЕРЖКА PRODUCTION И DEVELOPMENT
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3001";
@@ -187,6 +188,7 @@ function App() {
                 onBlock={handleBlock}
             />
         )}
+        <MusicPlayer />
     </div>
   );
 }
