@@ -873,6 +873,7 @@ input[type="text"]:focus {
 
 /* ========================================= МЯЧ ========================================= */
 .volleyball-ball {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   position: absolute;
   width: 22px;
   height: 22px;
@@ -964,10 +965,24 @@ input[type="text"]:focus {
 }
 
 .animating-indicator {
-  display: flex;
-  gap: 8px;
-  align-items: center;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
 }
+
+.animating-indicator .ball {
+    width: 12px;
+    height: 12px;
+    background: var(--color-primary);
+    border-radius: 50%;
+    animation: bounce 0.6s infinite alternate;
+}
+
+.animating-indicator .ball:nth-child(2) { animation-delay: 0.2s; }
+.animating-indicator .ball:nth-child(3) { animation-delay: 0.4s; }
 
 /* ========================================= ЛОГ ========================================= */
 .commentator-box {

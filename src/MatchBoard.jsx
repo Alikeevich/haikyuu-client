@@ -4,79 +4,203 @@ function MatchBoard({ myTeam, enemyTeam, myId, turn, score, onServe, gameLog, ph
     
     const isMyTurn = turn === myId;
     const scrollRef = useRef(null);
-    const [ballPosition, setBallPosition] = useState({ top: '50%', left: '50%', opacity: 0 });
+    const animationRef = useRef(null);
+    
+    const [ballPosition, setBallPosition] = useState({ 
+        top: '50%', 
+        left: '50%', 
+        opacity: 0,
+        transform: 'scale(1) rotate(0deg)'
+    });
+    
     const [isAnimating, setIsAnimating] = useState(false);
     const [selectedPlayer, setSelectedPlayer] = useState(null);
-    const [ballInFlight, setBallInFlight] = useState(false); // Для анимации полета
+    const [ballInFlight, setBallInFlight] = useState(false);
+    const [ballPath, setBallPath] = useState([]);
+    const [currentPathIndex, setCurrentPathIndex] = useState(0);
 
+    // Автоскролл лога
     useEffect(() => {
-        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
     }, [gameLog]);
 
-    // ⚡ УЛУЧШЕННАЯ АНИМАЦИЯ МЯЧА С ПОЛЕТОМ
+    // Определение координат позиций для анимации
+    const getPositionCoords = (position, isEnemy) => {
+        const positions = {
+            // Моя команда (нижняя половина)
+            my: {
+                1: { x: 80, y: 88 },  // bottom: 12%
+                2: { x: 20, y: 64 },  // bottom: 36%
+                3: { x: 50, y: 64 },  // bottom: 36%
+                4: { x: 80, y: 64 },  // bottom: 36%
+                5: { x: 20, y: 88 },  // bottom: 12%
+                6: { x: 50, y: 88 }   // bottom: 12%
+            },
+            // Вражеская команда (верхняя половина)
+            enemy: {
+                1: { x: 20, y: 12 },
+                2: { x: 20, y: 36 },
+                3: { x: 50, y: 36 },
+                4: { x: 80, y: 36 },
+                5: { x: 80, y: 12 },
+                6: { x: 50, y: 12 }
+            }
+        };
+        
+        const coords = isEnemy ? positions.enemy[position] : positions.my[position];
+        return {
+            left: `${coords.x}%`,
+            top: `${coords.y}%`
+        };
+    };
+
+    // Создание траектории полета мяча
+    const createBallPath = (fromPos, toPos, curvePoints = []) => {
+        const path = [];
+        
+        // Начальная точка
+        path.push({ 
+            ...fromPos, 
+            opacity: 1,
+            transform: 'scale(1) rotate(0deg)',
+            duration: 0
+        });
+        
+        // Кривые точки (для дугообразной траектории)
+        if (curvePoints.length > 0) {
+            curvePoints.forEach(point => {
+                path.push({
+                    ...point,
+                    opacity: 1,
+                    transform: 'scale(1.1) rotate(90deg)',
+                    duration: 300
+                });
+            });
+        }
+        
+        // Конечная точка
+        path.push({
+            ...toPos,
+            opacity: 1,
+            transform: 'scale(1) rotate(360deg)',
+            duration: 400
+        });
+        
+        return path;
+    };
+
+    // Основная анимация мяча
     useEffect(() => {
+        if (animationRef.current) {
+            clearInterval(animationRef.current);
+        }
+
+        setIsAnimating(true);
+        setBallInFlight(false);
+        setBallPath([]);
+        setCurrentPathIndex(0);
+
         const animateBall = async () => {
-            setIsAnimating(true);
+            await new Promise(resolve => setTimeout(resolve, 100));
             
             if (phase === 'SERVE') {
-                // Мяч у подающего
-                await setBallToPosition(isMyTurn ? 'my-serve' : 'enemy-serve');
-                await delay(500);
-            } 
-            else if (phase === 'SET') {
-                // Мяч летит к связующему
-                setBallInFlight(true);
-                await setBallToPosition('center');
-                await delay(400);
-                setBallInFlight(false);
+                // Анимация подачи
+                const serverPos = getPositionCoords(1, !isMyTurn);
+                const targetPos = getPositionCoords(1, isMyTurn);
                 
-                // ✅ ИСПРАВЛЕНО: Учитываем ballTarget для правильной позиции
+                // Траектория с дугой
+                const curvePoint = {
+                    left: '50%',
+                    top: isMyTurn ? '40%' : '60%'
+                };
+                
+                const path = createBallPath(serverPos, targetPos, [curvePoint]);
+                setBallPath(path);
+                
+            } else if (phase === 'SET') {
+                // Анимация паса
+                const setterPos = getPositionCoords(3, !isMyTurn);
+                let targetPos;
+                
                 if (ballTarget === 3) {
-                    // Пайп - мяч летит на заднюю линию
-                    await setBallToPosition(isMyTurn ? 'my-pipe' : 'enemy-pipe');
+                    // Пайп - летит на заднюю линию
+                    targetPos = getPositionCoords(6, !isMyTurn);
                 } else {
-                    await setBallToPosition(isMyTurn ? 'my-set' : 'enemy-set');
+                    // Обычная атака
+                    targetPos = getPositionCoords(ballTarget, !isMyTurn);
                 }
-                await delay(600);
+                
+                // Высокая дуга для паса
+                const curvePoint = {
+                    left: `${(parseFloat(setterPos.left) + parseFloat(targetPos.left)) / 2}%`,
+                    top: isMyTurn ? '30%' : '70%'
+                };
+                
+                const path = createBallPath(setterPos, targetPos, [curvePoint]);
+                setBallPath(path);
+                
+            } else if (phase === 'BLOCK') {
+                // Анимация атаки и блока
+                const attackerPos = getPositionCoords(ballTarget || 4, !isMyTurn);
+                const netPos = { left: '50%', top: '50%' };
+                const defenderPos = getPositionCoords(ballTarget || 4, isMyTurn);
+                
+                // Прямая атака через сетку
+                const path = [
+                    { ...attackerPos, opacity: 1, transform: 'scale(1) rotate(0deg)', duration: 0 },
+                    { ...netPos, opacity: 1, transform: 'scale(1.2) rotate(180deg)', duration: 200 },
+                    { ...defenderPos, opacity: 1, transform: 'scale(1) rotate(360deg)', duration: 300 }
+                ];
+                
+                setBallPath(path);
             }
-            else if (phase === 'BLOCK') {
-                // Мяч летит через сетку с вращением
-                setBallInFlight(true);
-                await setBallToPosition('mid-air-attack');
-                await delay(300);
-                await setBallToPosition('net');
-                await delay(300);
-                setBallInFlight(false);
-            }
-            
-            setIsAnimating(false);
         };
 
         animateBall();
-    }, [phase, isMyTurn, ballTarget]); // ✅ Добавлена зависимость от ballTarget
+    }, [phase, isMyTurn, ballTarget]);
 
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    // Анимация по точкам траектории
+    useEffect(() => {
+        if (ballPath.length === 0 || currentPathIndex >= ballPath.length) {
+            if (ballPath.length > 0 && currentPathIndex >= ballPath.length) {
+                setIsAnimating(false);
+                setBallInFlight(false);
+            }
+            return;
+        }
 
-    const setBallToPosition = (position) => {
-        return new Promise(resolve => {
-            const positions = {
-                'my-serve': { bottom: '12%', left: '80%', top: 'auto', opacity: 1, transform: 'scale(1)' },
-                'enemy-serve': { top: '12%', left: '20%', bottom: 'auto', opacity: 1, transform: 'scale(1)' },
-                'my-set': { bottom: '36%', left: '50%', top: 'auto', opacity: 1, transform: 'scale(1)' },
-                'enemy-set': { top: '36%', left: '50%', bottom: 'auto', opacity: 1, transform: 'scale(1)' },
-                'center': { top: '50%', left: '50%', bottom: 'auto', opacity: 1, transform: 'scale(1.1)' },
-                'mid-air-attack': { top: '40%', left: '50%', bottom: 'auto', opacity: 1, transform: 'scale(1.2) rotate(180deg)' },
-                'net': { top: '48%', left: '50%', bottom: 'auto', opacity: 1, transform: 'scale(1.4) rotate(360deg)' },
-                // ✅ НОВОЕ: Позиции для пайпа
-                'my-pipe': { bottom: '12%', left: '50%', top: 'auto', opacity: 1, transform: 'scale(1.1)' },
-                'enemy-pipe': { top: '12%', left: '50%', bottom: 'auto', opacity: 1, transform: 'scale(1.1)' }
-            };
-            
-            setBallPosition(positions[position] || { opacity: 0, transform: 'scale(1)' });
-            setTimeout(resolve, 100);
+        setBallInFlight(true);
+        const currentPoint = ballPath[currentPathIndex];
+        
+        setBallPosition({
+            ...currentPoint,
+            transition: `all ${currentPoint.duration || 300}ms cubic-bezier(0.4, 0, 0.2, 1)`
         });
-    };
 
+        const timer = setTimeout(() => {
+            setCurrentPathIndex(prev => prev + 1);
+        }, currentPoint.duration || 300);
+
+        return () => clearTimeout(timer);
+    }, [ballPath, currentPathIndex]);
+
+    // Эффект вращения мяча в полете
+    useEffect(() => {
+        if (ballInFlight) {
+            const rotateInterval = setInterval(() => {
+                setBallPosition(prev => ({
+                    ...prev,
+                    transform: `scale(1.1) rotate(${parseInt(prev.transform.match(/rotate\((\d+)deg\)/)?.[1] || 0) + 90}deg)`
+                }));
+            }, 100);
+
+            return () => clearInterval(rotateInterval);
+        }
+    }, [ballInFlight]);
+
+    // Тултипы игроков
     const togglePlayerInfo = (player, e) => {
         e?.stopPropagation();
         if (selectedPlayer?.id === player.id) {
@@ -192,10 +316,12 @@ function MatchBoard({ myTeam, enemyTeam, myId, turn, score, onServe, gameLog, ph
                 <div 
                     className={`volleyball-ball ${ballInFlight ? 'in-flight' : ''}`}
                     style={{
-                        ...ballPosition,
-                        transition: ballInFlight 
-                            ? 'all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)' 
-                            : 'all 0.6s ease-out'
+                        position: 'absolute',
+                        top: ballPosition.top,
+                        left: ballPosition.left,
+                        opacity: ballPosition.opacity,
+                        transform: ballPosition.transform,
+                        transition: ballPosition.transition || 'all 0.3s ease-out'
                     }}
                 ></div>
 
