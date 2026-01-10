@@ -1,13 +1,96 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>client</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<html lang="ru">
+<head>
+  <!-- Основные мета-теги -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1a1a1a" />
+  
+  <!-- SEO -->
+  <meta name="description" content="Haikyuu!! Volleyball Card Game - сразись в волейбольной битве карточек!" />
+  <meta name="keywords" content="haikyuu, volleyball, card game, волейбол, карточная игра" />
+  <meta name="author" content="Haikyuu Game Dev" />
+  
+  <!-- Open Graph (для соцсетей) -->
+  <meta property="og:title" content="Haikyuu!! Volleyball Card Game" />
+  <meta property="og:description" content="Карточная волейбольная игра по вселенной Haikyuu!!" />
+  <meta property="og:type" content="website" />
+  
+  <!-- Иконка -->
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  
+  <!-- Предзагрузка шрифтов (если используются) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  
+  <!-- Название -->
+  <title>Haikyuu!! Volleyball Card Game</title>
+  
+  <!-- Базовые стили для body (пока React не загрузился) -->
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+      color: #ffffff;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    #root {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* Loader пока React загружается */
+    .loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-size: 1.5rem;
+      color: #ff6b35;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+    
+    /* Скрыть loader когда React загрузится */
+    #root:not(:empty) + .loading {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- Fallback loader -->
+  <div class="loading">
+    🏐 Загрузка игры...
+  </div>
+  
+  <!-- React App -->
+  <script type="module" src="/src/main.jsx"></script>
+  
+  <!-- Обработка ошибок загрузки -->
+  <script>
+    window.addEventListener('error', function(e) {
+      if (e.message.includes('Failed to fetch')) {
+        document.body.innerHTML = '<div style="text-align:center;padding:2rem;"><h1>⚠️ Ошибка загрузки</h1><p>Проверьте подключение к интернету и обновите страницу</p></div>';
+      }
+    });
+  </script>
+</body>
 </html>
