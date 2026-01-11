@@ -47,11 +47,40 @@ function Draft({ socket, roomId, allCharacters, myId, draftTurn }) {
     }, [socket]);
 
     const generateOptions = () => {
+        // 1. Идентификаторы уже выбранных и забаненных
         const chosenIds = myTeam.map(p => p.id);
         const excludedIds = [...chosenIds, ...bannedIds];
-        const pool = allCharacters.filter(c => !excludedIds.includes(c.id));
-        const shuffled = [...pool].sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, 3);
+
+        // 2. Разделяем базу на Обычных и Секретных
+        const normalPool = allCharacters.filter(c => !c.isSecret && !excludedIds.includes(c.id));
+        const secretPool = allCharacters.filter(c => c.isSecret && !excludedIds.includes(c.id));
+
+        let result = [];
+        
+        // 3. ШАНС ВЫПАДЕНИЯ (Например, 5% или 0.05)
+        const dropChance = 0.05; 
+        const roll = Math.random();
+
+        // Если повезло И есть доступные секретные персы
+        if (roll < dropChance && secretPool.length > 0) {
+            // Берем одного секретного
+            const secretChar = secretPool[Math.floor(Math.random() * secretPool.length)];
+            result.push(secretChar);
+            
+            // Добиваем двумя обычными
+            const shuffledNormal = [...normalPool].sort(() => 0.5 - Math.random());
+            result.push(...shuffledNormal.slice(0, 2));
+            
+            // Проигрываем звук "Легендарка!" (если хочешь, можно добавить позже)
+            console.log("🌟 ВЫПАЛА ЛЕГЕНДАРКА: " + secretChar.name);
+        } else {
+            // Обычный драфт (только из нормального пула)
+            const shuffledNormal = [...normalPool].sort(() => 0.5 - Math.random());
+            result = shuffledNormal.slice(0, 3);
+        }
+
+        // 4. Перемешиваем итоговую тройку (чтобы легендарка не всегда была первой)
+        return result.sort(() => 0.5 - Math.random());
     };
 
     useEffect(() => {
