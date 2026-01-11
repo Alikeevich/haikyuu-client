@@ -19,6 +19,7 @@ function App() {
   const [triggerShake, setTriggerShake] = useState(false);
   const [allCharacters, setAllCharacters] = useState([]);
   const [draftTurn, setDraftTurn] = useState(null);
+  const [triggerLegendary, setTriggerLegendary] = useState(false);
 
   const [teams, setTeams] = useState({ myTeam: [], enemyTeam: [] });
   const [myTeamIndex, setMyTeamIndex] = useState(null);
@@ -177,6 +178,17 @@ function App() {
         const msg = data.message.toLowerCase();
         const details = (data.details || '').toLowerCase();
 
+        if (data.isCritical) {
+            setTriggerShake(true);
+            setTimeout(() => setTriggerShake(false), 500);
+        }
+
+        // ЛЕГЕНДАРКА (Инверсия + Вспышка)
+        if (data.isLegendary) {
+            setTriggerLegendary(true);
+            setTimeout(() => setTriggerLegendary(false), 600); // Длительность анимации CSS
+        }
+
         // 🔊 ДЕТАЛЬНАЯ ЛОГИКА ЗВУКОВ ДЛЯ АТАКИ
 
         // 1. KILL BLOCK → ОЧКО
@@ -278,6 +290,7 @@ function App() {
                 onBlock={handleBlock}
                 triggerShake={triggerShake}
                 myTeamIndex={myTeamIndex}
+                triggerLegendary={triggerLegendary}
             />
         )}
         <MusicPlayer />

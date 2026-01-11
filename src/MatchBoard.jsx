@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Debris from './Effects';
 
-function MatchBoard({ myTeam, enemyTeam, myId, turn, score, onServe, gameLog, phase, lastAction, onSet, onBlock, triggerShake, myTeamIndex }) {
+function MatchBoard({ myTeam, enemyTeam, myId, turn, score, onServe, gameLog, phase, lastAction, onSet, onBlock, triggerShake, myTeamIndex, triggerLegendary }) {
     const isMyTurn = turn === myId;
     const scrollRef = useRef(null);
     const ballRef = useRef(null);
@@ -296,7 +296,7 @@ function MatchBoard({ myTeam, enemyTeam, myId, turn, score, onServe, gameLog, ph
     };
 
     return (
-        <div className={`match-container ${triggerShake ? 'shake-hard' : ''}`} onClick={() => setSelectedPlayer(null)}>
+        <div className={`match-container ${triggerShake ? 'shake-hard' : ''} ${triggerLegendary ? 'manga-impact' : ''} `} onClick={() => setSelectedPlayer(null)}>
             
             {triggerShake && (
                 <>

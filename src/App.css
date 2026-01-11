@@ -1323,3 +1323,35 @@ button:active {
     border-radius: 8px;
   }
 }
+
+.manga-impact {
+    animation: impact-sequence 0.4s steps(1) forwards;
+}
+
+@keyframes impact-sequence {
+    0% { 
+        /* 1. Вспышка: экран становится почти белым */
+        filter: brightness(5) contrast(0.5); 
+    }
+    15% { 
+        /* 2. Резкая инверсия (Негатив) - Черный фон становится белым */
+        filter: invert(1) contrast(1.2); 
+    }
+    30% { 
+        /* 3. Возврат к нормальному, но очень яркому */
+        filter: brightness(2);
+    }
+    45% { 
+        /* 4. Снова инверсия (мерцание) */
+        filter: invert(1);
+    }
+    100% { 
+        /* 5. Норма */
+        filter: none;
+    }
+}
+
+/* Дополнительно: когда инверсия, делаем элементы черно-белыми для стиля манги */
+.manga-impact .player-card {
+    filter: grayscale(1); /* Карточки становятся черно-белыми в момент удара */
+}
