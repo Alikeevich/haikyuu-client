@@ -20,76 +20,95 @@ function Lobby({ socket, roomId, setRoomId }) {
     };
 
     const copyToClipboard = () => {
-        navigator.clipboard.writeText(roomId);
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 2000);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(roomId);
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+        } else {
+            // Фоллбэк для старых браузеров или HTTP
+            const textArea = document.createElement("textarea");
+            textArea.value = roomId;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+        }
     };
 
-    // --- ЕСЛИ КОМНАТА СОЗДАНА (но НЕ AI), ПОКАЗЫВАЕМ ЭКРАН ОЖИДАНИЯ ---
-    // Для AI игры сразу идёт драфт, поэтому не показываем ожидание
+    // --- ЭКРАН ОЖИДАНИЯ (Room Created) ---
     if (roomId && !roomId.startsWith('AI-')) {
         return (
-            <div className="lobby-container">
-                <h2>ОЖИДАНИЕ СОПЕРНИКА...</h2>
-                <p>Сообщи этот код другу:</p>
-                
-                <div className="room-code-display" onClick={copyToClipboard}>
-                    {roomId}
+            <div className="lobby-container lobby-waiting">
+                <div className="lobby-header">
+                    <h2>ОЖИДАНИЕ...</h2>
+                    <p className="subtitle">Отправь код другу</p>
                 </div>
                 
-                <button className="btn-secondary" onClick={copyToClipboard}>
-                    {isCopied ? "СКОПИРОВАНО! ✅" : "КОПИРОВАТЬ КОД 📋"}
-                </button>
+                <div className="code-box">
+                    <div className="room-code-display" onClick={copyToClipboard}>
+                        {roomId}
+                    </div>
+                    <button className={`btn-copy ${isCopied ? 'copied' : ''}`} onClick={copyToClipboard}>
+                        {isCopied ? "СКОПИРОВАНО! ✅" : "КОПИРОВАТЬ"}
+                    </button>
+                </div>
 
-                <div className="loader">
-                    <div className="ball"></div>
-                    <div className="ball"></div>
-                    <div className="ball"></div>
+                <div className="loader-container">
+                    <div className="loader">
+                        <div className="ball"></div>
+                        <div className="ball"></div>
+                        <div className="ball"></div>
+                    </div>
+                    <p className="hint">Игра начнется автоматически, когда соперник введет код.</p>
                 </div>
-                <p style={{fontSize: '12px', color: '#888', marginTop: '20px'}}>
-                    Как только второй игрок введет код, игра начнется автоматически.
-                </p>
             </div>
         );
     }
 
-    // --- ОБЫЧНЫЙ ЭКРАН ЛОББИ ---
+    // --- ГЛАВНОЕ МЕНЮ ---
     return (
         <div className="lobby-container">
-            <h2>Haikyuu Tactics Online</h2>
-            <p className="lobby-subtitle">Карточная волейбольная битва</p>
+            <div className="lobby-header">
+                <h1>HAIKYUU TACTICS</h1>
+                <p className="subtitle">Волейбольная битва</p>
+            </div>
             
-            {/* НОВАЯ КАРТОЧКА - ПРОТИВ ИИ */}
-            <div className="lobby-card featured">
-                <h3>🤖 Играть против компьютера</h3>
-                <p className="ai-description">Тренировочный матч против умного ИИ</p>
-                <button className="btn-ai" onClick={createAIGame}>
-                    НАЧАТЬ ИГРУ VS AI
-                </button>
-            </div>
+            <div className="lobby-menu">
+                {/* 1. ИГРА ПРОТИВ ИИ */}
+                <div className="lobby-card featured">
+                    <div className="card-content">
+                        <h3>ТРЕНИРОВКА</h3>
+                        <p>Матч против компьютера</p>
+                    </div>
+                    <button className="btn-ai" onClick={createAIGame}>
+                        ИГРАТЬ VS AI 🤖
+                    </button>
+                </div>
 
-            <div className="divider">ИЛИ</div>
+                <div className="divider"><span>PvP РЕЖИМ</span></div>
 
-            <div className="lobby-card">
-                <h3>Создать новую игру</h3>
-                <button className="btn-primary" onClick={createGame}>
-                    СОЗДАТЬ КОМНАТУ
-                </button>
-            </div>
+                {/* 2. СОЗДАТЬ ИГРУ */}
+                <div className="lobby-card">
+                    <button className="btn-primary full-width" onClick={createGame}>
+                        СОЗДАТЬ КОМНАТУ 🏠
+                    </button>
+                </div>
 
-            <div className="divider">ИЛИ</div>
-
-            <div className="lobby-card">
-                <h3>Войти по коду</h3>
-                <input 
-                    type="text" 
-                    placeholder="КОД КОМНАТЫ" 
-                    value={inputCode}
-                    onChange={(e) => setInputCode(e.target.value.toUpperCase())}
-                />
-                <button className="btn-secondary" onClick={joinGame}>
-                    ПРИСОЕДИНИТЬСЯ
-                </button>
+                {/* 3. ВОЙТИ ПО КОДУ */}
+                <div className="lobby-card join-card">
+                    <input 
+                        type="text" 
+                        placeholder="ВВЕДИ КОД КОМНАТЫ" 
+                        value={inputCode}
+                        onChange={(e) => setInputCode(e.target.value.toUpperCase())}
+                        className="input-code"
+                    />
+                    <button className="btn-secondary full-width" onClick={joinGame} disabled={!inputCode}>
+                        ВОЙТИ ▶
+                    </button>
+                </div>
             </div>
         </div>
     );
