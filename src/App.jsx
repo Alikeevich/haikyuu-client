@@ -5,6 +5,7 @@ import Draft from './Draft';
 import MatchBoard from './MatchBoard';
 import './App.css';
 import MusicPlayer from './MusicPlayer';
+import GameOver from './GameOver';
 import { playSound } from './SoundManager';
 
 // 🌐 ПОДДЕРЖКА PRODUCTION И DEVELOPMENT
@@ -20,7 +21,7 @@ function App() {
   const [allCharacters, setAllCharacters] = useState([]);
   const [draftTurn, setDraftTurn] = useState(null);
   const [triggerLegendary, setTriggerLegendary] = useState(false);
-
+  const [gameOverData, setGameOverData] = useState(null);
   const [teams, setTeams] = useState({ myTeam: [], enemyTeam: [] });
   const [myTeamIndex, setMyTeamIndex] = useState(null);
   const [turn, setTurn] = useState(""); 
@@ -66,12 +67,9 @@ function App() {
     };
 
     const onGameOver = (data) => {
-        // 🔊 Финальный свисток
         playSound('whistle');
-        setTimeout(() => {
-            alert(data.message);
-            setNotification("🏆 ИГРА ОКОНЧЕНА 🏆");
-        }, 500);
+        // Сохраняем данные для экрана
+        setGameOverData(data);
     };
 
     socket.on('game_created', onGameCreated);
@@ -261,6 +259,9 @@ function App() {
   const handleServe = () => socket.emit('action_serve', { roomId });
   const handleSet = (targetPos) => socket.emit('action_set', { roomId, targetPos });
   const handleBlock = (blockPos) => socket.emit('action_block', { roomId, blockPos });
+  const handleRestart = () => {
+      window.location.reload();
+  };
 
   return (
     <div className="app">
@@ -275,23 +276,28 @@ function App() {
         )}
 
         {gameState === 'match' && (
-            <MatchBoard 
-                myTeam={teams.myTeam} 
-                enemyTeam={teams.enemyTeam} 
-                myId={myId}
-                turn={turn}
-                score={score}
-                onServe={handleServe} 
-                gameLog={gameLog}     
-                phase={phase}
-                ballTarget={ballTarget}
-                lastAction={lastAction}
-                onSet={handleSet}
-                onBlock={handleBlock}
-                triggerShake={triggerShake}
-                myTeamIndex={myTeamIndex}
-                triggerLegendary={triggerLegendary}
-            />
+            <>
+                <MatchBoard 
+                    myTeam={teams.myTeam} 
+                    enemyTeam={teams.enemyTeam} 
+                    myId={myId}
+                    turn={turn}
+                    score={score}
+                    onServe={handleServe} 
+                    gameLog={gameLog}     
+                    phase={phase}
+                    ballTarget={ballTarget}
+                    lastAction={lastAction}
+                    onSet={handleSet}
+                    onBlock={handleBlock}
+                    triggerShake={triggerShake}
+                    myTeamIndex={myTeamIndex}
+                    triggerLegendary={triggerLegendary}
+                />
+                {gameOverData && (
+                    <GameOver data={gameOverData} onRestart={handleRestart} />
+                )}
+            </>
         )}
         <MusicPlayer />
     </div>

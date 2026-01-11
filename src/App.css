@@ -1180,23 +1180,26 @@ button:active {
 /* Уведомления */
 .notification {
   position: fixed;
-  top: 10%;
+  top: 20px; /* Выше, чтобы не закрывать счет */
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.95);
-  border-left: 5px solid var(--color-primary);
-  color: var(--color-text-primary);
-  padding: 15px 20px;
-  border-radius: var(--radius-sm);
-  font-family: var(--font-display);
-  font-size: 24px;
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid #fca311; /* Тонкая рамка вместо жирной */
+  border-left: 5px solid #fca311;
+  color: #fff;
+  padding: 8px 20px; /* Меньше отступы */
+  border-radius: 4px;
+  font-family: 'Teko', sans-serif;
+  font-size: 20px; /* Меньше шрифт (было 28) */
   letter-spacing: 1px;
   z-index: 2000;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
   animation: slideDown 0.3s ease-out;
   pointer-events: none;
-  max-width: 90%;
+  white-space: pre-wrap;
   text-align: center;
+  width: auto;
+  max-width: 90%;
 }
 
 /* ========================================= АДАПТИВНОСТЬ (MEDIA QUERIES) ========================================= */
@@ -1354,4 +1357,110 @@ button:active {
 /* Дополнительно: когда инверсия, делаем элементы черно-белыми для стиля манги */
 .manga-impact .player-card {
     filter: grayscale(1); /* Карточки становятся черно-белыми в момент удара */
+}
+
+.game-over-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.92);
+    backdrop-filter: blur(10px);
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 1s ease-out;
+}
+
+.winner-title {
+    font-family: 'Teko', sans-serif;
+    font-size: 80px;
+    color: #fca311;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(252, 163, 17, 0.6);
+    margin-bottom: 10px;
+    line-height: 1;
+}
+
+.final-score {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 32px;
+    color: white;
+    margin-bottom: 40px;
+    font-weight: bold;
+}
+
+.mvp-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.mvp-label {
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: #ffd700;
+    text-transform: uppercase;
+    font-weight: bold;
+    border-bottom: 1px solid #ffd700;
+    padding-bottom: 5px;
+}
+
+/* Карточка MVP (увеличенная) */
+.mvp-card {
+    width: 140px;
+    height: 200px;
+    background: #1e1e1e;
+    border: 3px solid #ffd700;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(255, 215, 0, 0.3);
+    animation: pulse 2s infinite;
+}
+
+.mvp-photo {
+    width: 100%; height: 100%;
+    object-fit: cover;
+}
+
+.mvp-info {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(0deg, black, transparent);
+    padding: 20px 5px 5px 5px;
+    text-align: center;
+}
+
+.mvp-name {
+    font-family: 'Teko', sans-serif;
+    font-size: 28px;
+    color: white;
+    text-transform: uppercase;
+    line-height: 1;
+}
+
+.mvp-stats {
+    font-size: 12px;
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.restart-btn {
+    margin-top: 40px;
+    padding: 15px 40px;
+    font-size: 24px;
+    background: white;
+    color: black;
+    border: none;
+    border-radius: 50px;
+    font-family: 'Teko', sans-serif;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.restart-btn:hover {
+    background: #fca311;
+    transform: scale(1.05);
 }
