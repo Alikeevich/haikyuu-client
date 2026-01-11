@@ -978,19 +978,29 @@ button {
 /* Мяч */
 .volleyball-ball {
   position: absolute;
-  width: 22px;
-  height: 22px;
-  background: radial-gradient(circle at 30% 30%, #ffeb3b, #ffcc00);
-  background-image: 
-    radial-gradient(120% 100% at 50% 0%, #0055aa 50%, transparent 51%),
-    radial-gradient(120% 100% at 50% 100%, #0055aa 50%, transparent 51%);
-  border-radius: 50%;
-  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.5);
+  /* Размер чуть увеличим для четкости */
+  width: 24px; 
+  height: 24px;
+  
+  /* Твоя SVG текстура */
+  background-image: url('/ball.svg'); 
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  
+  /* Убираем старые градиенты и цвет */
+  background-color: transparent;
+  border: none;
+  box-shadow: none; /* Тень можно убрать или оставить легкую */
+  filter: drop-shadow(0 4px 4px rgba(0,0,0,0.4)); /* Тень для самой SVG */
+
+  /* Центрируем по осям трансформации, чтобы вращение было ровным */
+  margin-left: -12px;
+  margin-top: -12px;
+  
   z-index: 50;
-  margin-left: -11px;
-  margin-top: -11px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  will-change: top, left, transform; /* Оптимизация для браузера */
 }
 
 /* Управление */
