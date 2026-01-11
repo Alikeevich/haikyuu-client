@@ -58,7 +58,7 @@ function Draft({ socket, roomId, allCharacters, myId, draftTurn }) {
         let result = [];
         
         // 3. ШАНС ВЫПАДЕНИЯ (Например, 5% или 0.05)
-        const dropChance = 1; 
+        const dropChance = 0.05; 
         const roll = Math.random();
 
         // Если повезло И есть доступные секретные персы
