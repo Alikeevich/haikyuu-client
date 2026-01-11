@@ -21,6 +21,7 @@
   
   --color-border: #444;
   --color-border-light: rgba(255, 255, 255, 0.1);
+  --color-border-gold: rgba(255, 215, 0, 0.3);
   
   --spacing-xs: 5px;
   --spacing-sm: 10px;
@@ -36,6 +37,8 @@
   --shadow-sm: 0 4px 8px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.7);
   --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.8);
+  --shadow-primary: 0 0 15px rgba(252, 163, 17, 0.3);
+  --shadow-primary-hover: 0 6px 20px rgba(252, 163, 17, 0.5);
   
   --font-primary: 'Montserrat', sans-serif;
   --font-display: 'Teko', sans-serif;
@@ -116,7 +119,7 @@ input[type="text"] {
   border: 2px solid var(--color-border);
   color: var(--color-primary);
   font-family: var(--font-display);
-  font-size: 24px; /* Увеличен шрифт для удобства на мобильных */
+  font-size: 24px;
   text-align: center;
   padding: 15px;
   border-radius: var(--radius-md);
@@ -140,10 +143,10 @@ button {
   text-transform: uppercase;
   letter-spacing: 1px;
   transition: all var(--transition-normal);
-  padding: 16px 20px; /* Увеличен паддинг для тач-экранов */
+  padding: 16px 20px;
   font-size: 22px;
   font-weight: 600;
-  width: 100%; /* На всю ширину на мобильных */
+  width: 100%;
 }
 
 button:active {
@@ -153,12 +156,12 @@ button:active {
 .btn-primary {
   background: linear-gradient(45deg, var(--color-primary), var(--color-primary-dark));
   color: black;
-  box-shadow: 0 4px 15px rgba(252, 163, 17, 0.3);
+  box-shadow: var(--shadow-primary);
 }
 
 .btn-primary:hover, .btn-primary:active {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(252, 163, 17, 0.5);
+  box-shadow: var(--shadow-primary-hover);
 }
 
 .btn-secondary {
@@ -297,10 +300,9 @@ button:active {
   z-index: 1;
 }
 
-/* Код комнаты */
 .room-code-display {
   font-family: var(--font-display);
-  font-size: 56px; /* Чуть меньше для мобилок */
+  font-size: 56px;
   color: var(--color-primary);
   letter-spacing: 5px;
   padding: 20px;
@@ -325,14 +327,17 @@ button:active {
   font-weight: bold;
 }
 
-.divider::before, .divider::after {
+.divider::before, 
+.divider::after {
   content: '';
   flex: 1;
   height: 1px;
   background: var(--color-border);
 }
 
-.divider span { padding: 0 10px; } /* Если текст внутри */
+.divider span { 
+  padding: 0 10px; 
+}
 
 /* Лоадер */
 .loader {
@@ -350,8 +355,10 @@ button:active {
   animation: bounce 0.6s infinite alternate;
 }
 
-.ball:nth-child(2) { animation-delay: 0.2s; }
-.ball:nth-child(3) { animation-delay: 0.4s; }
+.ball:nth-child(n) { animation-delay: calc(0.2s * (var(--index, 1) - 1)); }
+.ball:nth-child(1) { --index: 1; }
+.ball:nth-child(2) { --index: 2; }
+.ball:nth-child(3) { --index: 3; }
 
 /* ========================================= ДРАФТ ========================================= */
 .draft-container {
@@ -515,7 +522,7 @@ button:active {
   margin-top: var(--spacing-sm);
   padding: 8px;
   background: rgba(255, 215, 0, 0.1);
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  border: 1px solid var(--color-border-gold);
   border-radius: var(--radius-sm);
 }
 
@@ -687,15 +694,14 @@ button:active {
 }
 
 .net-separator {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background: #ddd;
-  z-index: 10;
-  transform: translateY(-50%);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: #fff;
+    z-index: 20;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
 }
 
 .net-separator::before {
@@ -859,7 +865,7 @@ button:active {
 
 .tooltip-quirk {
   padding-top: 10px;
-  border-top: 1px solid rgba(255, 215, 0, 0.3);
+  border-top: 1px solid var(--color-border-gold);
   background: rgba(255, 215, 0, 0.05);
   margin: 0 -14px -14px -14px;
   padding: 10px 14px 12px 14px;
@@ -896,19 +902,20 @@ button:active {
 }
 
 /* Позиции игроков */
-.my-team .pos-4 { bottom: 36%; left: 20%; }
-.my-team .pos-3 { bottom: 36%; left: 50%; }
-.my-team .pos-2 { bottom: 36%; left: 80%; }
-.my-team .pos-5 { bottom: 12%; left: 20%; }
-.my-team .pos-6 { bottom: 12%; left: 50%; }
-.my-team .pos-1 { bottom: 12%; left: 80%; }
+.my-team .pos-1 { left: 80%; top: 85%; }
+.my-team .pos-6 { left: 50%; top: 85%; }
+.my-team .pos-5 { left: 20%; top: 85%; }
 
+.my-team .pos-4 { left: 20%; top: 65%; }
+.my-team .pos-3 { left: 50%; top: 65%; }
+.my-team .pos-2 { left: 80%; top: 65%; }
+
+.enemy-team .pos-1 { top: 12%; left: 20%; }
 .enemy-team .pos-2 { top: 36%; left: 20%; }
 .enemy-team .pos-3 { top: 36%; left: 50%; }
 .enemy-team .pos-4 { top: 36%; left: 80%; }
 .enemy-team .pos-5 { top: 12%; left: 80%; }
 .enemy-team .pos-6 { top: 12%; left: 50%; }
-.enemy-team .pos-1 { top: 12%; left: 20%; }
 
 /* Мяч */
 .volleyball-ball {
@@ -951,13 +958,13 @@ button:active {
   text-transform: uppercase;
   letter-spacing: 1px;
   transition: all var(--transition-normal);
-  box-shadow: 0 4px 15px rgba(252, 163, 17, 0.3);
+  box-shadow: var(--shadow-primary);
   width: auto;
 }
 
 .action-btn:hover, .action-btn:active {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(252, 163, 17, 0.5);
+  box-shadow: var(--shadow-primary-hover);
 }
 
 .set-controls {
@@ -986,13 +993,15 @@ button:active {
   text-align: center;
 }
 
-.set-btn:hover, .set-btn:active {
+.set-btn:hover, 
+.set-btn:active {
   border-color: var(--color-primary);
   color: var(--color-primary);
   background: rgba(252, 163, 17, 0.1);
 }
 
-.block-btn:hover, .block-btn:active {
+.block-btn:hover, 
+.block-btn:active {
   border-color: var(--color-danger);
   color: var(--color-danger);
   background: rgba(230, 0, 18, 0.1);
@@ -1068,7 +1077,7 @@ button:active {
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 0 15px rgba(252, 163, 17, 0.3);
+  box-shadow: var(--shadow-primary);
   transition: transform var(--transition-fast);
   animation: pulse 2s infinite;
   padding: 0;
@@ -1193,20 +1202,19 @@ button:active {
 .debris:nth-child(5) { --x: -30px; --y: 320px; --rot: 90deg; top: 50%; left: 50%; animation: debris-fall 0.7s ease-out forwards; }
 .debris:nth-child(6) { --x: 40px; --y: 380px; --rot: -45deg; top: 50%; left: 50%; animation: debris-fall 0.8s ease-out forwards; }
 
-/* Уведомления */
 .notification {
   position: fixed;
-  top: 20px; /* Выше, чтобы не закрывать счет */
+  top: 20px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(0, 0, 0, 0.9);
-  border: 1px solid #fca311; /* Тонкая рамка вместо жирной */
+  border: 1px solid #fca311;
   border-left: 5px solid #fca311;
   color: #fff;
-  padding: 8px 20px; /* Меньше отступы */
+  padding: 8px 20px;
   border-radius: 4px;
-  font-family: 'Teko', sans-serif;
-  font-size: 20px; /* Меньше шрифт (было 28) */
+  font-family: var(--font-display);
+  font-size: 20px;
   letter-spacing: 1px;
   z-index: 2000;
   box-shadow: 0 5px 15px rgba(0,0,0,0.5);
@@ -1223,7 +1231,7 @@ button:active {
 /* Мобильные телефоны */
 @media (max-width: 600px) {
   .lobby-container {
-    justify-content: flex-start; /* Начинаем сверху, чтобы клавиатура не перекрывала */
+    justify-content: flex-start;
     padding-top: 60px;
   }
 
@@ -1240,7 +1248,6 @@ button:active {
     padding: 10px;
   }
 
-  /* Игровое поле на маленьких экранах */
   .board-wrapper {
     width: 300px;
   }
@@ -1252,7 +1259,9 @@ button:active {
     margin-top: -31.5px;
   }
   
-  .card-name { font-size: 7px; }
+  .card-name { 
+    font-size: 7px; 
+  }
   
   .quirk-tooltip {
     min-width: 160px;
@@ -1260,11 +1269,11 @@ button:active {
     padding: 10px;
   }
 
-  /* Плеер меньше, чтобы не мешал */
   .music-player-widget {
     bottom: 10px;
     left: 10px;
   }
+  
   .music-toggle-btn {
     width: 40px;
     height: 40px;
@@ -1277,8 +1286,14 @@ button:active {
   .board-wrapper {
     width: 280px;
   }
-  .team-score strong { font-size: 32px; }
-  .vs { font-size: 20px; }
+  
+  .team-score strong { 
+    font-size: 32px; 
+  }
+  
+  .vs { 
+    font-size: 20px; 
+  }
   
   .set-btn {
     font-size: 11px;
@@ -1289,11 +1304,25 @@ button:active {
 
 /* Планшеты (меньше 768px) */
 @media (max-width: 768px) {
-  .draft-card-big { width: 160px; }
-  .draft-photo { height: 160px; }
-  .emoji-draft { font-size: 80px; }
-  .draft-name { font-size: 18px; }
-  .stat-value { font-size: 16px; }
+  .draft-card-big { 
+    width: 160px; 
+  }
+  
+  .draft-photo { 
+    height: 160px; 
+  }
+  
+  .emoji-draft { 
+    font-size: 80px; 
+  }
+  
+  .draft-name { 
+    font-size: 18px; 
+  }
+  
+  .stat-value { 
+    font-size: 16px; 
+  }
 }
 
 @media (max-width: 400px) {
@@ -1304,9 +1333,17 @@ button:active {
 }
 
 @media (max-height: 700px) {
-  .match-container { max-width: 450px; }
-  .board-wrapper { width: 300px; }
-  .commentator-box { height: 80px; }
+  .match-container { 
+    max-width: 450px; 
+  }
+  
+  .board-wrapper { 
+    width: 300px; 
+  }
+  
+  .commentator-box { 
+    height: 80px; 
+  }
 }
 
 /* Ландшафт на мобильных (поворот экрана) */
@@ -1389,7 +1426,7 @@ button:active {
 }
 
 .winner-title {
-    font-family: 'Teko', sans-serif;
+    font-family: var(--font-display);
     font-size: 80px;
     color: #fca311;
     text-transform: uppercase;
@@ -1451,7 +1488,7 @@ button:active {
 }
 
 .mvp-name {
-    font-family: 'Teko', sans-serif;
+    font-family: var(--font-display);
     font-size: 28px;
     color: white;
     text-transform: uppercase;
@@ -1472,11 +1509,13 @@ button:active {
     color: black;
     border: none;
     border-radius: 50px;
-    font-family: 'Teko', sans-serif;
+    font-family: var(--font-display);
     cursor: pointer;
-    transition: 0.2s;
+    transition: all var(--transition-normal);
 }
+
 .restart-btn:hover {
     background: #fca311;
     transform: scale(1.05);
 }
+

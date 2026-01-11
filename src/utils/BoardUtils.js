@@ -5,80 +5,69 @@ export const TEAMS = {
     ENEMY: 'ENEMY_TEAM'
 };
 
-// Координаты зон
 const ZONES = {
     [TEAMS.MY]: {
-        1: { x: 85, y: 85 }, 2: { x: 85, y: 60 }, 3: { x: 50, y: 60 },
-        4: { x: 15, y: 60 }, 5: { x: 15, y: 85 }, 6: { x: 50, y: 75 },
+        1: { x: 75, y: 85 }, 
+        6: { x: 50, y: 85 }, 
+        5: { x: 25, y: 85 }, 
+        4: { x: 25, y: 65 }, 
+        3: { x: 50, y: 65 }, 
+        2: { x: 75, y: 65 }, 
     },
     [TEAMS.ENEMY]: {
-        1: { x: 15, y: 15 }, 2: { x: 15, y: 40 }, 3: { x: 50, y: 40 },
-        4: { x: 85, y: 40 }, 5: { x: 85, y: 15 }, 6: { x: 50, y: 25 },
+        1: { x: 25, y: 15 }, 
+        6: { x: 50, y: 15 }, 
+        5: { x: 75, y: 15 }, 
+        4: { x: 75, y: 35 }, 
+        3: { x: 50, y: 35 }, 
+        2: { x: 25, y: 35 }, 
     }
 };
 
-export const getDistance = (p1, p2) => {
-    return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
-};
-
-/**
- * Находит координаты игрока
- */
-const getPlayerPos = (playerId, myTeam, enemyTeam) => {
+export const getPlayerCoordinates = (playerId, myTeam, enemyTeam) => {
     const myPlayer = myTeam.find(p => p.id === playerId);
     if (myPlayer) return { ...ZONES[TEAMS.MY][myPlayer.position], isMySide: true };
 
     const enemyPlayer = enemyTeam.find(p => p.id === playerId);
     if (enemyPlayer) return { ...ZONES[TEAMS.ENEMY][enemyPlayer.position], isMySide: false };
 
-    return null;
+    return null; 
 };
 
-export const getCoordinates = (targetType, data, context) => {
+export const getBallTargetCoordinates = (targetType, data, context) => {
     const { myTeam, enemyTeam } = context;
-    const center = { x: 50, y: 50 };
 
-    // 1. ПОЗИЦИЯ ДЛЯ ПОДАЧИ (У ИГРОКА ЗА СПИНОЙ)
-    if (targetType === 'SERVE_START_AT_PLAYER') {
-        const playerPos = getPlayerPos(data.playerId, myTeam, enemyTeam);
-        if (!playerPos) return center;
-
-        // Смещаем мяч за лицевую линию (в зависимости от стороны)
-        // Если это я (снизу), смещаем вниз (Y увеличиваем). Если враг (сверху), уменьшаем.
-        const offsetY = playerPos.isMySide ? 15 : -15; 
-        
-        return { 
-            x: playerPos.x, 
-            y: playerPos.y + offsetY 
-        };
+    if (targetType === 'HOLD_IN_HANDS') {
+        const pos = getPlayerCoordinates(data.playerId, myTeam, enemyTeam);
+        if (!pos) return { x: 50, y: 50 };
+        const offsetX = pos.isMySide ? 5 : -5;
+        const offsetY = pos.isMySide ? 2 : -2;
+        return { x: pos.x + offsetX, y: pos.y + offsetY };
     }
 
-    // 2. ПОЗИЦИЯ ПАСУЮЩЕГО (Сеттера)
-    if (targetType === 'SETTER_POS') {
-        const team = data.isMySide ? myTeam : enemyTeam;
-        const teamKey = data.isMySide ? TEAMS.MY : TEAMS.ENEMY;
-        
-        // Пытаемся найти игрока в зоне 3 (классический выход пасующего)
-        // Или в зоне 2, если разыгрывают оттуда. По дефолту зона 3.
-        const setter = team.find(p => p.position === 3) || team.find(p => p.position === 2);
-        
-        if (setter) {
-            return ZONES[teamKey][setter.position];
-        }
-        // Если игрока нет, возвращаем координаты зоны 3
-        return ZONES[teamKey][3];
+    // === ФИКС КООРДИНАТ СВЯЗУЮЩЕГО ===
+    if (targetType === 'SETTER_ZONE') {
+        const isMySide = data.isMySide;
+        // Было x: 65 (слишком вправо). Стало x: 55 (почти центр).
+        // Y: 60 (ближе к сетке).
+        if (isMySide) return { x: 50, y: 60 }; 
+        else return { x: 50, y: 40 };          
     }
 
     if (targetType === 'PLAYER') {
-        const pos = getPlayerPos(data.id, myTeam, enemyTeam);
-        return pos || center;
+        const pos = getPlayerCoordinates(data.id, myTeam, enemyTeam);
+        return pos || { x: 50, y: 50 };
     }
 
     if (targetType === 'ZONE') {
         const isMySide = data.isMySide;
         const teamKey = isMySide ? TEAMS.MY : TEAMS.ENEMY;
-        return ZONES[teamKey][data.zoneId] || center;
+        const base = ZONES[teamKey][data.zoneId];
+        return { 
+            x: base.x + (Math.random() * 2 - 1), 
+            y: base.y + (Math.random() * 2 - 1)
+        };
     }
 
-    return center;
+    return { x: 50, y: 50 };
 };

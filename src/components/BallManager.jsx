@@ -1,237 +1,296 @@
-// src/components/BallManager.jsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, useAnimation } from 'framer-motion';
-import { getCoordinates, getDistance } from '../utils/BoardUtils';
+import { getPlayerCoordinates, getBallTargetCoordinates } from '../utils/BoardUtils';
 
-const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn }) => {
-    const positionControls = useAnimation();
-    const heightControls = useAnimation();
+const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
+    // === КОНТРОЛЛЕРЫ АНИМАЦИИ (Все названия стандартизированы) ===
+    const controlsX = useAnimation();      // Движение A -> B
+    const controlsOffset = useAnimation(); // Искривление (Curve)
+    const controlsScale = useAnimation();  // Высота (Z-axis)
+    const controlsRotate = useAnimation(); // Вращение
+    const controlsSquash = useAnimation(); // Сплющивание
+    const controlsShadow = useAnimation(); // Тень
     
     const posRef = useRef({ x: 50, y: 50 });
-    const [isMoving, setIsMoving] = useState(false);
+    const rotationRef = useRef(0); 
 
-    // --- ТЕЛЕПОРТ (СБРОС) ---
+    // === 1. ТЕЛЕПОРТ (СБРОС) ===
     const teleportTo = (target) => {
         if (!target) return;
         posRef.current = target;
-        positionControls.set({ left: `${target.x}%`, top: `${target.y}%` });
-        heightControls.set({ y: 0, scale: 1, rotate: 0 });
+        
+        // Сбрасываем физику
+        controlsX.set({ left: `${target.x}%`, top: `${target.y}%` });
+        controlsOffset.set({ x: 0, y: 0 }); 
+        controlsScale.set({ scale: 1 });
+        controlsSquash.set({ scaleX: 1, scaleY: 1 });
+        
+        // Тень
+        controlsShadow.set({ 
+            left: `${target.x}%`, top: `${target.y}%`, 
+            scale: 1, opacity: 0.6, filter: "blur(2px)" 
+        });
     };
 
-    // --- ДВИЖЕНИЕ МЯЧА ---
+    // === 2. ЭФФЕКТ "SQUASH" (УДАР) ===
+    const playSquash = async (strength = 1) => {
+        await controlsSquash.start({
+            scaleX: [1, 1 + (0.3 * strength), 0.9, 1],
+            scaleY: [1, 1 - (0.3 * strength), 1.1, 1],
+            transition: { duration: 0.15 }
+        });
+    };
+
+    // === 3. ФИЗИКА ПОЛЕТА ===
     const moveBall = async (target, type = 'NORMAL') => {
+        if (!target) return;
+        
         const start = posRef.current;
-        const dist = getDistance(start, target);
         
-        // 1. НАСТРОЙКИ СКОРОСТИ И ДУГИ
-        let speedMultiplier = 0.020; 
-        let arcHeightPixels = 50;
-        let rotations = 2;
+        // -- НАСТРОЙКИ --
+        let duration = 0.5;
+        let apex = 0.5; 
+        let height = 1.3; 
+        let spin = 360; 
+        let curveAmount = 0; 
         
+        // -- ТЮНИНГ --
         switch (type) {
-            case 'SPIKE':       
-                speedMultiplier = 0.009; // Пуля
-                arcHeightPixels = 10;    
-                rotations = 12;          
+            case 'SERVE':
+                duration = 0.5; height = 1.9; spin = 1080; apex = 0.5;
+                curveAmount = (Math.random() - 0.5) * 40; 
                 break;
-            case 'SET':         
-                speedMultiplier = 0.022; // Медленно и высоко
-                arcHeightPixels = 120;   
-                rotations = 2; 
+            case 'SPIKE':
+                duration = 0.3; height = 1.15; spin = 720; apex = 0.2; curveAmount = 0;     
                 break;
-            case 'SERVE':       
-                speedMultiplier = 0.010; // << УСКОРИЛИ ПОДАЧУ (было 0.015)
-                arcHeightPixels = 60;    
-                rotations = 8; 
+            case 'SET':
+                duration = 0.7; height = 1.5; spin = -180; apex = 0.5;
+                curveAmount = (Math.random() - 0.5) * 20; 
                 break;
-            case 'RECEIVE':     
-                speedMultiplier = 0.016; // Доводка до связки чуть быстрее обычного
-                arcHeightPixels = 90;    
-                rotations = 3; 
+            case 'SET_HIDDEN': 
+                duration = 0.8; height = 1.2; spin = -90; apex = 0.5;
                 break;
-            case 'BLOCK_DROP':  
-                speedMultiplier = 0.025; 
-                arcHeightPixels = 30;    
+            case 'RECEIVE':
+                duration = 0.6; height = 1.6; spin = 180; apex = 0.6;          
+                curveAmount = (Math.random() - 0.5) * 60; 
                 break;
-            default:            
-                speedMultiplier = 0.020;
+            default: break;
         }
 
-        const duration = Math.max(0.3, dist * speedMultiplier);
-        setIsMoving(true);
+        // -- ЗАПУСК АНИМАЦИЙ --
 
-        // Запуск анимаций
-        const movePromise = positionControls.start({
-            left: `${target.x}%`,
-            top: `${target.y}%`,
+        // 1. Вращение
+        rotationRef.current += spin;
+        controlsRotate.start({
+            rotate: rotationRef.current,
             transition: { duration: duration, ease: "linear" }
         });
 
-        const arcPromise = heightControls.start({
-            y: [0, -arcHeightPixels, 0],
-            scale: [1, 1.3, 1],         
-            rotate: `+${360 * rotations}deg`,
-            transition: { duration: duration, ease: "easeInOut", times: [0, 0.5, 1] }
+        // 2. Высота (Z-axis)
+        controlsScale.start({
+            scale: [1, height, 1],
+            transition: { duration: duration, times: [0, apex, 1], ease: "easeInOut" }
         });
 
-        await Promise.all([movePromise, arcPromise]);
+        // 3. Тень (ИСПРАВЛЕНО: controlsShadow вместо shadowControls)
+        controlsShadow.start({
+            left: `${target.x}%`, 
+            top: `${target.y}%`,
+            scale: [1, 0.4, 1], 
+            opacity: [0.6, 0.1, 0.6], 
+            filter: ["blur(2px)", "blur(8px)", "blur(2px)"],
+            transition: { duration: duration, times: [0, apex, 1], ease: "easeInOut" }
+        });
 
-        // Squash эффект при ударе
-        if (type === 'SPIKE' || type === 'SERVE') {
-            heightControls.start({
-                scaleX: [1, 1.25, 1],
-                scaleY: [1, 0.75, 1],
-                transition: { duration: 0.1 }
+        // 4. Искривление (Offset)
+        if (curveAmount !== 0) {
+            controlsOffset.start({
+                x: [0, curveAmount, 0], 
+                y: [0, -Math.abs(curveAmount/2), 0], 
+                transition: { duration: duration, ease: "easeInOut" }
             });
         }
 
+        // 5. Основное движение (ИСПРАВЛЕНО: controlsX вместо ballX)
+        await controlsX.start({
+            left: `${target.x}%`,
+            top: `${target.y}%`,
+            transition: { duration: duration, ease: "easeInOut" }
+        });
+
+        // 6. Удар
+        if (type !== 'SET' && type !== 'SET_HIDDEN') {
+            playSquash(type === 'SPIKE' ? 1.5 : 0.8);
+        }
+
         posRef.current = target;
-        setIsMoving(false);
     };
 
-    // --- ГЛАВНАЯ ЛОГИКА ---
+    // === ВОЗВРАТ МЯЧА ===
+    const resetBallToHand = () => {
+        const isMyTurn = turn === myId;
+        const servingTeam = isMyTurn ? myTeam : enemyTeam;
+        const serverPlayer = servingTeam.find(p => p.position === 1);
+        
+        if (serverPlayer) {
+            const handPos = getBallTargetCoordinates('HOLD_IN_HANDS', { playerId: serverPlayer.id }, { myTeam, enemyTeam });
+            teleportTo(handPos);
+        } else {
+            const defaultPos = isMyTurn ? {x: 75, y: 85} : {x: 25, y: 15};
+            teleportTo(defaultPos);
+        }
+    };
+
+    // ФАЗА ПОДАЧИ
+    useEffect(() => {
+        if (phase === 'SERVE') {
+            const isJustActed = lastAction && (Date.now() - lastAction.ts < 1500);
+            if (!isJustActed) resetBallToHand();
+        }
+    }, [phase, turn, myTeam, enemyTeam]);
+
+    // ЛОГИКА ДЕЙСТВИЙ
     useEffect(() => {
         if (!lastAction) return;
+        const { type, actorId, data = {} } = lastAction;
 
         const processAction = async () => {
-            const { type, actorId, data = {} } = lastAction;
-
-            // === 1. ПОДАЧА ===
             if (type === 'SERVE') {
-                // Сначала убедимся, что мяч вылетает от подающего
-                const startPos = getCoordinates('SERVE_START_AT_PLAYER', { playerId: actorId }, { myTeam, enemyTeam });
+                const startPos = getBallTargetCoordinates('HOLD_IN_HANDS', { playerId: actorId }, { myTeam, enemyTeam });
                 teleportTo(startPos);
-
-                const receiverPos = getCoordinates('PLAYER', { id: data.receiverId }, { myTeam, enemyTeam });
-
-                // Эйс или ошибка
+                const receiverPos = getPlayerCoordinates(data.receiverId, myTeam, enemyTeam);
+                
                 if (data.winSide === 'ATTACK') {
-                    // Просто летит в пол (или аут)
-                    const missPos = { x: receiverPos.x, y: receiverPos.y }; 
-                    await moveBall(missPos, 'SERVE');
-                } 
-                // Успешный прием
-                else {
-                    // А. Полет к принимающему
-                    await moveBall(receiverPos, 'SERVE');
-                    
-                    // Б. АВТОМАТИЧЕСКАЯ ДОВОДКА К СВЯЗУЮЩЕМУ (СЕТТЕРУ)
-                    // Определяем, чья команда принимала
-                    const isMyReceiver = myTeam.some(p => p.id === data.receiverId);
-                    
-                    // Находим координаты "позиции связующего" для этой команды
-                    // BoardUtils сам решит, где стоит связка (обычно зона 3 или 2)
-                    const setterPos = getCoordinates('SETTER_POS', { isMySide: isMyReceiver }, { myTeam, enemyTeam });
-                    
-                    // Мяч летит от принимающего к связке
-                    await moveBall(setterPos, 'RECEIVE');
-                }
-            }
-
-            // === 2. ПАС (SET) ===
-            else if (type === 'SET') {
-                // Пас обычно идет от связки к нападающему
-                // Можно добавить небольшую задержку или телепорт, если рассинхрон,
-                // но обычно мяч уже там после 'RECEIVE'
-                const isActorMyTeam = myTeam.some(p => p.id === actorId);
-                let targetPos = { x: 50, y: 50 };
-                
-                if (lastAction.targetPos) {
-                    targetPos = getCoordinates('ZONE', { zoneId: lastAction.targetPos, isMySide: isActorMyTeam }, { myTeam, enemyTeam });
+                    await moveBall({ x: receiverPos.x + 5, y: receiverPos.y + 5 }, 'SERVE');
+                    setTimeout(resetBallToHand, 1200);
                 } else {
-                    targetPos = getCoordinates('ZONE', { zoneId: 4, isMySide: isActorMyTeam }, { myTeam, enemyTeam });
-                }
-                await moveBall(targetPos, 'SET');
-            }
-
-            // === 3. АТАКА (SPIKE) ===
-            else if (type === 'SPIKE') {
-                const attackerPos = getCoordinates('PLAYER', { id: lastAction.attackerId }, { myTeam, enemyTeam });
-                
-                // Если был БЛОК
-                if (data.winSide === 'DEFENSE') {
-                     // Летит в блок (сетка напротив атакующего)
-                     await moveBall({ x: attackerPos.x, y: 50 }, 'SPIKE');
-                     // Отскакивает вниз
-                     await moveBall({ x: attackerPos.x, y: attackerPos.y + (attackerPos.y > 50 ? 10 : -10) }, 'BLOCK_DROP');
-                }
-                // Успешная атака или Сейв
-                else {
-                    let endPos = { x: 50, y: 50 };
-                    if (data.trajectory?.endId) {
-                         endPos = getCoordinates('PLAYER', { id: data.trajectory.endId }, { myTeam, enemyTeam });
+                    await moveBall(receiverPos, 'SERVE');
+                    const isMyReception = myTeam.some(p => p.id === data.receiverId);
+                    if (data.isBadReception) {
+                        const overpassPos = getBallTargetCoordinates('ZONE', { zoneId: 6, isMySide: !isMyReception }, { myTeam, enemyTeam });
+                        await moveBall(overpassPos, 'RECEIVE');
+                        const enemySetterPos = getBallTargetCoordinates('SETTER_ZONE', { isMySide: !isMyReception }, { myTeam, enemyTeam });
+                        await moveBall(enemySetterPos, 'RECEIVE');
                     } else {
-                        // Рандом в поле
-                        const isMyAttack = myTeam.some(p => p.id === lastAction.attackerId);
-                        endPos = { 
-                            x: attackerPos.x + (Math.random() * 20 - 10),
-                            y: isMyAttack ? 15 : 85 
-                        };
+                        const setterPos = getBallTargetCoordinates('SETTER_ZONE', { isMySide: isMyReception }, { myTeam, enemyTeam });
+                        await moveBall(setterPos, 'RECEIVE');
                     }
-                    await moveBall(endPos, 'SPIKE');
+                }
+            } else if (type === 'SET') {
+                const isMySet = myTeam.some(p => p.id === actorId);
+                if (!isMySet) { await moveBall({ x: 50, y: 40 }, 'SET_HIDDEN'); return; }
+                const targetZone = lastAction.targetPos || 4;
+                let spikePos = getBallTargetCoordinates('ZONE', { zoneId: targetZone, isMySide: isMySet }, { myTeam, enemyTeam });
+                if (targetZone === 3) spikePos.y += 10; 
+                await moveBall(spikePos, 'SET');
+            } else if (type === 'SPIKE') {
+                const isMyAttack = myTeam.some(p => p.id === actorId);
+                if (!isMyAttack) {
+                    const attackerPos = getPlayerCoordinates(actorId, myTeam, enemyTeam);
+                    if (attackerPos) teleportTo(attackerPos);
+                }
+                if (data.winSide === 'DEFENSE') {
+                    const contactId = data.trajectory?.startId || actorId;
+                    let blockPos = getPlayerCoordinates(contactId, myTeam, enemyTeam);
+                    if (!blockPos) blockPos = getBallTargetCoordinates('ZONE', { zoneId: 3, isMySide: !isMyAttack }, { myTeam, enemyTeam });
+                    
+                    if(!isMyAttack) teleportTo(blockPos);
 
-                    // Если это Сейв (DIG), мяч должен подскочить вверх
-                    if (data.winSide !== 'ATTACK') {
-                         // Небольшой подброс вверх после приема атаки
-                         const digPopUp = { ...endPos, y: endPos.y + (endPos.y > 50 ? -5 : 5) };
-                         await moveBall(digPopUp, 'RECEIVE'); 
+                    const reboundY = isMyAttack ? blockPos.y + 20 : blockPos.y - 20;
+                    const reboundPos = { x: blockPos.x + (Math.random() * 10 - 5), y: reboundY };
+                    await moveBall(reboundPos, 'SPIKE');
+                    setTimeout(resetBallToHand, 1200);
+
+                } else if (data.winSide === 'ATTACK') {
+                    let landPos;
+                    if (data.trajectory?.endId) landPos = getPlayerCoordinates(data.trajectory.endId, myTeam, enemyTeam);
+                    else landPos = getBallTargetCoordinates('ZONE', { zoneId: 6, isMySide: !isMyAttack }, { myTeam, enemyTeam });
+                    await moveBall(landPos, 'SPIKE');
+                    setTimeout(resetBallToHand, 1200);
+
+                } else {
+                    let digPos;
+                    if (data.trajectory?.endId) digPos = getPlayerCoordinates(data.trajectory.endId, myTeam, enemyTeam);
+                    else digPos = getBallTargetCoordinates('ZONE', { zoneId: 6, isMySide: !isMyAttack }, { myTeam, enemyTeam });
+                    await moveBall(digPos, 'SPIKE'); 
+                    
+                    const isOverpass = data.message && data.message.includes("перелетел сетку");
+                    if (isOverpass) {
+                        const overpassPos = getBallTargetCoordinates('ZONE', { zoneId: 6, isMySide: isMyAttack }, { myTeam, enemyTeam });
+                        await moveBall(overpassPos, 'RECEIVE');
+                        const counterSetterPos = getBallTargetCoordinates('SETTER_ZONE', { isMySide: isMyAttack }, { myTeam, enemyTeam });
+                        await moveBall(counterSetterPos, 'RECEIVE');
+                    } else {
+                        const isMyDefense = !isMyAttack;
+                        const setterPos = getBallTargetCoordinates('SETTER_ZONE', { isMySide: isMyDefense }, { myTeam, enemyTeam });
+                        await moveBall(setterPos, 'RECEIVE');
                     }
                 }
             }
         };
-
         processAction();
     }, [lastAction]);
 
-    // --- ПРИВЯЗКА МЯЧА К ПОДАЮЩЕМУ ПРИ РОТАЦИИ ---
-    // Это решает проблему "мяч не знает айди". 
-    // Мы следим за turn (ID подающего) и myTeam/enemyTeam (позициями).
-    // Если фаза подачи и мяч не летит - он всегда телепортируется в руки подающему.
-    useEffect(() => {
-        if (phase === 'SERVE' && !isMoving && !lastAction) {
-            const coords = getCoordinates('SERVE_START_AT_PLAYER', { playerId: turn }, { myTeam, enemyTeam });
-            if (coords) teleportTo(coords);
-        }
-    }, [phase, turn, myTeam, enemyTeam, isMoving, lastAction]);
-
     return (
-        <motion.div
-            animate={positionControls}
-            initial={{ left: '50%', top: '50%' }}
-            style={{ position: 'absolute', width: 0, height: 0, zIndex: 100, pointerEvents: 'none' }}
-        >
-            {/* Тень */}
+        <>
+            {/* ТЕНЬ */}
             <motion.div
-                animate={heightControls}
+                animate={controlsShadow}
+                initial={{ opacity: 0, scale: 0 }}
                 style={{
                     position: 'absolute', width: '24px', height: '6px',
-                    left: '-12px', top: '10px', borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.4)', filter: 'blur(3px)',
+                    marginLeft: '-12px', marginTop: '16px',
+                    borderRadius: '50%', background: 'rgba(0,0,0,0.6)',
+                    filter: 'blur(3px)', zIndex: 9, pointerEvents: 'none'
                 }}
             />
-            {/* Мяч */}
+            
+            {/* ОСНОВНОЙ КОНТЕЙНЕР (X/Y) */}
             <motion.div
-                animate={heightControls}
-                initial={{ y: 0, scale: 1 }}
+                animate={controlsX}
+                initial={{ left: '50%', top: '50%' }}
                 style={{
-                    position: 'absolute', width: '20px', height: '20px',
-                    left: '-10px', top: '-10px',
+                    position: 'absolute', width: '0px', height: '0px',
+                    zIndex: 100, pointerEvents: 'none',
+                    display: 'flex', justifyContent: 'center', alignItems: 'center'
                 }}
             >
-                {/* SVG мяча (тот же что и раньше) */}
-                <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
-                    <defs>
-                        <radialGradient id="grad1" cx="35%" cy="35%" r="60%">
-                            <stop offset="0%" style={{stopColor: '#fff', stopOpacity: 1}} />
-                            <stop offset="100%" style={{stopColor: '#ddd', stopOpacity: 1}} />
-                        </radialGradient>
-                    </defs>
-                    <circle cx="50" cy="50" r="48" fill="url(#grad1)" stroke="#333" strokeWidth="2"/>
-                    <path d="M50 2 C 80 25, 80 75, 50 98" fill="none" stroke="#FFC107" strokeWidth="26" strokeLinecap="round" opacity="0.9" />
-                    <path d="M50 2 C 20 25, 20 75, 50 98" fill="none" stroke="#003c8f" strokeWidth="26" strokeLinecap="round" opacity="0.9" />
-                </svg>
+                {/* КОНТЕЙНЕР ИСКРИВЛЕНИЯ */}
+                <motion.div animate={controlsOffset} style={{ display:'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    
+                    {/* КОНТЕЙНЕР ВЫСОТЫ */}
+                    <motion.div animate={controlsScale} style={{display:'flex', justifyContent:'center', alignItems:'center'}}>
+                        
+                        {/* КОНТЕЙНЕР СПЛЮЩИВАНИЯ */}
+                        <motion.div animate={controlsSquash} style={{display:'flex', justifyContent:'center', alignItems:'center'}}>
+                            
+                            {/* ВРАЩЕНИЕ */}
+                            <motion.div 
+                                animate={controlsRotate} 
+                                style={{ 
+                                    width: '24px', height: '24px', 
+                                    transformOrigin: 'center center'
+                                }}
+                            >
+                                {/* SVG МЯЧ */}
+                                <svg viewBox="0 0 100 100" width="100%" height="100%" style={{ overflow: 'visible' }}>
+                                    <defs>
+                                        <radialGradient id="ballGrad" cx="30%" cy="30%" r="80%">
+                                            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.4"/>
+                                            <stop offset="100%" stopColor="#000000" stopOpacity="0.1"/>
+                                        </radialGradient>
+                                    </defs>
+                                    <circle cx="50" cy="50" r="48" fill="#003c8f" stroke="#222" strokeWidth="2"/>
+                                    <path d="M 2 50 Q 50 10, 98 50 Q 50 90, 2 50" fill="#fca311" stroke="#222" strokeWidth="2" />
+                                    <path d="M 50 2 Q 90 50, 50 98 Q 10 50, 50 2" fill="none" stroke="#222" strokeWidth="2" />
+                                    <circle cx="50" cy="50" r="48" fill="url(#ballGrad)" style={{ mixBlendMode: 'overlay' }}/>
+                                </svg>
+                            </motion.div>
+                        </motion.div>
+                    </motion.div>
+                </motion.div>
             </motion.div>
-        </motion.div>
+        </>
     );
 };
 
