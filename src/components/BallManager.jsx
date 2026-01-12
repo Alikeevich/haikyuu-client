@@ -262,7 +262,6 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
                     // !!! ПРОВЕРКА НА ПЕРЕЛЕТ СЕТКИ ПО ТЕКСТУ !!!
                     const isOverpass = data.message && 
                                     data.message.includes("поднял, но мяч перелетел сетку!") &&
-                                    !data.message.includes("🛡️ Смягчение блоком!") &&
                                     !data.message.includes("ТАЩИТ! Переход в атаку!");
                     
                     if (isOverpass) {
