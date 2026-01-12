@@ -53,7 +53,11 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
         
         switch (type) {
             case 'SERVE':
-                duration = 0.85; height = 1.9; spin = 1080; apex = 0.5;
+                duration = 0.5; height = 1.9; spin = 1080; apex = 0.5;
+                curveAmount = (Math.random() - 0.5) * 40; 
+                break;
+            case 'SERVE_ACE':
+                duration = 0.3; height = 1.9; spin = 1080; apex = 0.5;
                 curveAmount = (Math.random() - 0.5) * 40; 
                 break;
             case 'SPIKE':
@@ -157,7 +161,9 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
                 
                 if (data.winSide === 'ATTACK') {
                     // ЭЙС
-                    await moveBall({ x: receiverPos.x + 5, y: receiverPos.y + 5 }, 'SERVE');
+                    const isYamaguchi = actorId === 'yamaguchi';
+                    const serveType = isYamaguchi ? 'SERVE' : 'SERVE_ACE';
+                    await moveBall({ x: receiverPos.x + 5, y: receiverPos.y + 5 }, serveType);
                     setTimeout(resetBallToHand, 1200);
                 } else {
                     // ПРИЕМ
