@@ -53,7 +53,7 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
         
         switch (type) {
             case 'SERVE':
-                duration = 0.5; height = 1.9; spin = 1080; apex = 0.5;
+                duration = 0.85; height = 1.9; spin = 1080; apex = 0.5;
                 curveAmount = (Math.random() - 0.5) * 40; 
                 break;
             case 'SPIKE':

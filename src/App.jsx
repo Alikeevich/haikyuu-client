@@ -151,7 +151,7 @@ function App() {
         
         playSound('set');
         
-        setLastAction({ type: 'SET', actorId: data.setterId, ts: Date.now() });
+        setLastAction({ type: 'SET', actorId: data.setterId, targetPos: data.targetPos, ts: Date.now() });
     };
 
     const onSpikeResult = (data) => {
