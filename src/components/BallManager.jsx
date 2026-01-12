@@ -60,6 +60,11 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
                 duration = 0.3; height = 1.15; spin = 720; apex = 0.2; curveAmount = 0; 
                 easeType = "easeOut"; 
                 break;
+            case 'OUT':
+                duration = 0.4; height = 1.0; spin = 900; apex = 0.3;
+                curveAmount = (Math.random() > 0.5 ? 1 : -1) * 80;
+                easeType = "easeOut";
+                break;
             case 'SET':
                 duration = 0.7; height = 1.5; spin = -180; apex = 0.5;
                 curveAmount = (Math.random() - 0.5) * 20; 
@@ -200,7 +205,18 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
                     if (attackerPos) teleportTo(attackerPos);
                 }
 
-                if (data.winSide === 'DEFENSE') {
+                // === KYOTANI АУТ ===
+                if (data.trajectory?.type === 'OUT') {
+                    // Мяч летит МИМО площадки (за границу)
+                    const outPos = isMyAttack 
+                        ? { x: 110, y: 90 }  // За нашу площадку вправо
+                        : { x: -10, y: 10 }; // За вражескую влево
+                    await moveBall(outPos, 'OUT');
+                    setTimeout(resetBallToHand, 1200);
+                }
+                
+                // === ОБЫЧНАЯ ЛОГИКА ===
+                else if (data.winSide === 'DEFENSE') {
                     // БЛОК
                     const contactId = data.trajectory?.startId || actorId;
                     let blockPos = getPlayerCoordinates(contactId, myTeam, enemyTeam);
@@ -230,9 +246,9 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
                     
                     // !!! ПРОВЕРКА НА ПЕРЕЛЕТ СЕТКИ ПО ТЕКСТУ !!!
                     const isOverpass = data.message && 
-                                    data.message.includes("перелетел сетку") &&
-                                    !data.message.includes("Смягчение блоком") &&
-                                    !data.message.includes("ТАЩИТ");
+                                    data.message.includes("поднял, но мяч перелетел сетку!") &&
+                                    !data.message.includes("🛡️ Смягчение блоком!") &&
+                                    !data.message.includes("ТАЩИТ! Переход в атаку!");
                     
                     if (isOverpass) {
                         const overpassPos = getBallTargetCoordinates('ZONE', { zoneId: 6, isMySide: isMyAttack }, { myTeam, enemyTeam });
