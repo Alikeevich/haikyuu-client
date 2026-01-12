@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { getPlayerCoordinates, getBallTargetCoordinates } from '../utils/BoardUtils';
+import { playSound } from '../SoundManager';
 
 const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
     // Контроллеры анимации
@@ -163,6 +164,14 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
                     // ЭЙС
                     const isYamaguchi = actorId === 'yamaguchi';
                     const serveType = isYamaguchi ? 'SERVE' : 'SERVE_ACE';
+                    
+                    // Звук эйса
+                    if (isYamaguchi) {
+                        playSound('serve');
+                    } else {
+                        playSound('spike');
+                    }
+                    
                     await moveBall({ x: receiverPos.x + 5, y: receiverPos.y + 5 }, serveType);
                     setTimeout(resetBallToHand, 1200);
                 } else {
