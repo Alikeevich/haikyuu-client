@@ -1519,3 +1519,20 @@ button:active {
     transform: scale(1.05);
 }
 
+/* Защита от спама - disabled состояние */
+.action-btn:disabled,
+.set-btn:disabled,
+.block-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+    filter: grayscale(50%);
+}
+
+.action-btn:disabled:hover,
+.set-btn:disabled:hover,
+.block-btn:disabled:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+

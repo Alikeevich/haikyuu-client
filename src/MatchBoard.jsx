@@ -20,7 +20,8 @@ function MatchBoard({
     onBlock, 
     triggerShake, 
     myTeamIndex, 
-    triggerLegendary 
+    triggerLegendary,
+    isActionPending
 }) {
 
     const isMyTurn = turn === myId;
@@ -165,21 +166,21 @@ function MatchBoard({
 
             {/* КНОПКИ */}
             <div className="controls">
-                {isMyTurn && phase === 'SERVE' && <button className="action-btn" onClick={onServe}>ПОДАТЬ 🏐</button>}
+                {isMyTurn && phase === 'SERVE' && <button className="action-btn" onClick={onServe} disabled={isActionPending}>ПОДАТЬ 🏐</button>}
                 
                 {isMyTurn && phase === 'SET' && (
                     <div className="set-controls">
-                        <button className="set-btn" onClick={() => onSet(4)}>⬅️ ЛЕВО</button>
-                        <button className="set-btn" onClick={() => onSet(3)}>⬆️ ПАЙП</button>
-                        <button className="set-btn" onClick={() => onSet(2)}>ПРАВО ➡️</button>
+                        <button className="set-btn" onClick={() => onSet(4)} disabled={isActionPending}>⬅️ ЛЕВО</button>
+                        <button className="set-btn" onClick={() => onSet(3)} disabled={isActionPending}>⬆️ ПАЙП</button>
+                        <button className="set-btn" onClick={() => onSet(2)} disabled={isActionPending}>ПРАВО ➡️</button>
                     </div>
                 )}
                 
                 {isMyTurn && phase === 'BLOCK' && (
                     <div className="set-controls">
-                        <button className="set-btn block-btn" onClick={() => onBlock(4)}>✋ ЛЕВО</button>
-                        <button className="set-btn block-btn" onClick={() => onBlock(3)}>✋ ЦЕНТР</button>
-                        <button className="set-btn block-btn" onClick={() => onBlock(2)}>✋ ПРАВО</button>
+                        <button className="set-btn block-btn" onClick={() => onBlock(4)} disabled={isActionPending}>✋ ЛЕВО</button>
+                        <button className="set-btn block-btn" onClick={() => onBlock(3)} disabled={isActionPending}>✋ ЦЕНТР</button>
+                        <button className="set-btn block-btn" onClick={() => onBlock(2)} disabled={isActionPending}>✋ ПРАВО</button>
                     </div>
                 )}
             </div>

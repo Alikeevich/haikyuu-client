@@ -30,6 +30,8 @@ function App() {
   const [phase, setPhase] = useState('SERVE');
   const [ballTarget, setBallTarget] = useState(null); 
   const [lastAction, setLastAction] = useState(null);
+  const [isActionPending, setActionPending] = useState(false);
+
 
   useEffect(() => {
     socket.on('connect', () => setMyId(socket.id));
@@ -106,7 +108,7 @@ function App() {
             ts: Date.now(),
             data: data
         });
-
+        setActionPending(false);
         const msg = data.message.toLowerCase();
 
         // 🔊 ЛОГИКА ЗВУКОВ ДЛЯ ПОДАЧИ
@@ -124,6 +126,7 @@ function App() {
             console.log('🔊 Играем: bump (прием)');
             playSound('bump');
         }
+        setActionPending(false);
     };
 
     const onSetResult = (data) => {
@@ -138,6 +141,7 @@ function App() {
         playSound('set');
         
         setLastAction({ type: 'SET', actorId: data.setterId, targetPos: data.targetPos, ts: Date.now() });
+        setActionPending(false);
     };
 
     const onSetMade = (data) => {
@@ -152,10 +156,12 @@ function App() {
         playSound('set');
         
         setLastAction({ type: 'SET', actorId: data.setterId, targetPos: data.targetPos, ts: Date.now() });
+        setActionPending(false);
     };
 
     const onSpikeResult = (data) => {
         console.log('💥 SPIKE RESULT:', data.message, '| Details:', data.details);
+        setActionPending(false);
         
         setScore(data.score);
         setTurn(data.nextTurn);
@@ -172,6 +178,7 @@ function App() {
         setNotification(data.message);
         setGameLog(prev => prev + '\n' + `${data.message} (${data.details})`);
         setLastAction({ type: 'SPIKE', ts: Date.now(), data: data });
+        setActionPending(false);
         
         const msg = data.message.toLowerCase();
         const details = (data.details || '').toLowerCase();
@@ -256,9 +263,21 @@ function App() {
     }
   }, [notification]);
 
-  const handleServe = () => socket.emit('action_serve', { roomId });
-  const handleSet = (targetPos) => socket.emit('action_set', { roomId, targetPos });
-  const handleBlock = (blockPos) => socket.emit('action_block', { roomId, blockPos });
+  const handleServe = () => {
+    if (isActionPending) return;
+    setActionPending(true);
+    socket.emit('action_serve', { roomId });
+  };
+  const handleSet = (targetPos) => {
+    if (isActionPending) return;
+    setActionPending(true);
+    socket.emit('action_set', { roomId, targetPos });
+  };
+  const handleBlock = (blockPos) => {
+    if (isActionPending) return;
+    setActionPending(true);
+    socket.emit('action_block', { roomId, blockPos });
+  };
   const handleRestart = () => {
       window.location.reload();
   };
@@ -293,6 +312,7 @@ function App() {
                     triggerShake={triggerShake}
                     myTeamIndex={myTeamIndex}
                     triggerLegendary={triggerLegendary}
+                    isActionPending={isActionPending}
                 />
                 {gameOverData && (
                     <GameOver data={gameOverData} onRestart={handleRestart} />
