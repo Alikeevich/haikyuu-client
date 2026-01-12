@@ -161,7 +161,10 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
                     const isMyReception = myTeam.some(p => p.id === data.receiverId);
                     
                     // !!! ПРОВЕРКА НА ПЕРЕЛЕТ СЕТКИ ПО ТЕКСТУ !!!
-                    const isOverpass = data.message && data.message.includes("перелетел сетку");
+                    const isOverpass = data.message && 
+                                    data.message.includes("перелетел сетку") &&
+                                    !data.message.includes("Смягчение блоком") &&
+                                    !data.message.includes("ТАЩИТ");
 
                     if (isOverpass) {
                         // 1. Летит на сторону врага (зона 6)
@@ -226,7 +229,10 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
                     await moveBall(digPos, 'SPIKE'); 
                     
                     // !!! ПРОВЕРКА НА ПЕРЕЛЕТ СЕТКИ ПО ТЕКСТУ !!!
-                    const isOverpass = data.message && data.message.includes("перелетел сетку");
+                    const isOverpass = data.message && 
+                                    data.message.includes("перелетел сетку") &&
+                                    !data.message.includes("Смягчение блоком") &&
+                                    !data.message.includes("ТАЩИТ");
                     
                     if (isOverpass) {
                         const overpassPos = getBallTargetCoordinates('ZONE', { zoneId: 6, isMySide: isMyAttack }, { myTeam, enemyTeam });
