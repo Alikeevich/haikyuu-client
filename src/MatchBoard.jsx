@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import Debris from './Effects';
 import SpeedLines from './SpeedLines';
 import BallManager from './components/BallManager';
+import CheatLayer from './components/CheatLayer';
 
 function MatchBoard({ 
     myTeam, 
@@ -140,6 +141,12 @@ function MatchBoard({
 
             {/* ПОЛЕ */}
             <div className="board-wrapper">
+                <CheatLayer 
+                    lastAction={lastAction}
+                    myTeam={myTeam}
+                    enemyTeam={enemyTeam}
+                    myId={myId}
+                />
                 <div className="enemy-team">{enemyTeam.map(p => renderPlayer(p, true))}</div>
                 
                 <div className="net-separator"></div>

@@ -44,16 +44,13 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
         if (!target) return;
         
         const start = posRef.current;
-        
-        // -- НАСТРОЙКИ --
         let duration = 0.5;
         let apex = 0.5; 
         let height = 1.3; 
         let spin = 360; 
         let curveAmount = 0; 
-        let easeType = "easeInOut"; // По умолчанию плавно
+        let easeType = "easeInOut"; 
         
-        // -- ТЮНИНГ --
         switch (type) {
             case 'SERVE':
                 duration = 0.5; height = 1.9; spin = 1080; apex = 0.5;
@@ -61,7 +58,7 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
                 break;
             case 'SPIKE':
                 duration = 0.3; height = 1.15; spin = 720; apex = 0.2; curveAmount = 0; 
-                easeType = "easeOut"; // Быстрый старт
+                easeType = "easeOut"; 
                 break;
             case 'SET':
                 duration = 0.7; height = 1.5; spin = -180; apex = 0.5;
@@ -74,21 +71,12 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
                 duration = 0.6; height = 1.6; spin = 180; apex = 0.6;          
                 curveAmount = (Math.random() - 0.5) * 60; 
                 break;
-            
-            // === НОВЫЙ ТИП: ОТСКОК ОТ БЛОКА (SLAM DOWN) ===
             case 'BLOCK_BOUNCE':
-                duration = 0.25;     // Очень быстро
-                height = 1.05;       // Почти без дуги (чуть-чуть)
-                spin = 360;          
-                apex = 0.1;          // Пик сразу же
-                curveAmount = 0;
-                easeType = "easeIn"; // Ускорение вниз (гравитация)
+                duration = 0.25; height = 1.05; spin = 360; apex = 0.1; curveAmount = 0;
+                easeType = "easeIn"; 
                 break;
-
             default: break;
         }
-
-        // -- ЗАПУСК АНИМАЦИЙ --
 
         rotationRef.current += spin;
         controlsRotate.start({
@@ -96,23 +84,17 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
             transition: { duration: duration, ease: "linear" }
         });
 
-        // Высота (Z-axis)
         controlsScale.start({
             scale: [1, height, 1],
             transition: { duration: duration, times: [0, apex, 1], ease: "easeInOut" }
         });
 
-        // Тень
         controlsShadow.start({
-            left: `${target.x}%`, 
-            top: `${target.y}%`,
-            scale: [1, 0.4, 1], 
-            opacity: [0.6, 0.1, 0.6], 
-            filter: ["blur(2px)", "blur(8px)", "blur(2px)"],
+            left: `${target.x}%`, top: `${target.y}%`,
+            scale: [1, 0.4, 1], opacity: [0.6, 0.1, 0.6], filter: ["blur(2px)", "blur(8px)", "blur(2px)"],
             transition: { duration: duration, times: [0, apex, 1], ease: "easeInOut" }
         });
 
-        // Искривление
         if (curveAmount !== 0) {
             controlsOffset.start({
                 x: [0, curveAmount, 0], 
@@ -121,14 +103,11 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
             });
         }
 
-        // Основное движение
         await controlsX.start({
-            left: `${target.x}%`,
-            top: `${target.y}%`,
+            left: `${target.x}%`, top: `${target.y}%`,
             transition: { duration: duration, ease: easeType }
         });
 
-        // Удар
         if (type !== 'SET' && type !== 'SET_HIDDEN') {
             playSquash(type === 'SPIKE' || type === 'BLOCK_BOUNCE' ? 1.5 : 0.8);
         }
@@ -165,28 +144,43 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
         const { type, actorId, data = {} } = lastAction;
 
         const processAction = async () => {
+            // --- SERVE ---
             if (type === 'SERVE') {
                 const startPos = getBallTargetCoordinates('HOLD_IN_HANDS', { playerId: actorId }, { myTeam, enemyTeam });
                 teleportTo(startPos);
                 const receiverPos = getPlayerCoordinates(data.receiverId, myTeam, enemyTeam);
                 
                 if (data.winSide === 'ATTACK') {
+                    // ЭЙС
                     await moveBall({ x: receiverPos.x + 5, y: receiverPos.y + 5 }, 'SERVE');
                     setTimeout(resetBallToHand, 1200);
                 } else {
+                    // ПРИЕМ
                     await moveBall(receiverPos, 'SERVE');
+                    
                     const isMyReception = myTeam.some(p => p.id === data.receiverId);
-                    if (data.isBadReception) {
+                    
+                    // !!! ПРОВЕРКА НА ПЕРЕЛЕТ СЕТКИ ПО ТЕКСТУ !!!
+                    const isOverpass = data.message && data.message.includes("перелетел сетку");
+
+                    if (isOverpass) {
+                        // 1. Летит на сторону врага (зона 6)
                         const overpassPos = getBallTargetCoordinates('ZONE', { zoneId: 6, isMySide: !isMyReception }, { myTeam, enemyTeam });
                         await moveBall(overpassPos, 'RECEIVE');
+                        
+                        // 2. Оттуда к ИХ связующему
                         const enemySetterPos = getBallTargetCoordinates('SETTER_ZONE', { isMySide: !isMyReception }, { myTeam, enemyTeam });
                         await moveBall(enemySetterPos, 'RECEIVE');
                     } else {
+                        // ВО ВСЕХ ОСТАЛЬНЫХ СЛУЧАЯХ -> К НАШЕМУ СЕТТЕРУ
                         const setterPos = getBallTargetCoordinates('SETTER_ZONE', { isMySide: isMyReception }, { myTeam, enemyTeam });
                         await moveBall(setterPos, 'RECEIVE');
                     }
                 }
-            } else if (type === 'SET') {
+            } 
+            
+            // --- SET ---
+            else if (type === 'SET') {
                 const isMySet = myTeam.some(p => p.id === actorId);
                 if (!isMySet) { await moveBall({ x: 50, y: 40 }, 'SET_HIDDEN'); return; }
                 const targetZone = lastAction.targetPos || 4;
@@ -204,29 +198,20 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
                 }
 
                 if (data.winSide === 'DEFENSE') {
-                    // === BLOCK (MONSTER BLOCK) ===
+                    // БЛОК
                     const contactId = data.trajectory?.startId || actorId;
                     let blockPos = getPlayerCoordinates(contactId, myTeam, enemyTeam);
-                    
-                    // Fallback если позиция блока не найдена
                     if (!blockPos) blockPos = getBallTargetCoordinates('ZONE', { zoneId: 3, isMySide: !isMyAttack }, { myTeam, enemyTeam });
                     
-                    // Телепортируем мяч к блоку (визуальный контакт)
                     if(!isMyAttack) teleportTo(blockPos);
 
-                    // Рассчитываем отскок (резко вниз на сторону атакующего)
-                    // isMyAttack = true -> я атаковал (снизу), блок сверху. Мяч должен лететь вниз ко мне (Y увеличивается).
-                    // isMyAttack = false -> враг атаковал (сверху), блок снизу. Мяч должен лететь вверх к нему (Y уменьшается).
-                    
                     const reboundY = isMyAttack ? blockPos.y + 30 : blockPos.y - 30;
                     const reboundPos = { x: blockPos.x + (Math.random() * 12 - 6), y: reboundY };
-                    
-                    // Используем новую физику BLOCK_BOUNCE
                     await moveBall(reboundPos, 'BLOCK_BOUNCE');
                     setTimeout(resetBallToHand, 1200);
 
                 } else if (data.winSide === 'ATTACK') {
-                    // GOAL
+                    // ГОЛ
                     let landPos;
                     if (data.trajectory?.endId) landPos = getPlayerCoordinates(data.trajectory.endId, myTeam, enemyTeam);
                     else landPos = getBallTargetCoordinates('ZONE', { zoneId: 6, isMySide: !isMyAttack }, { myTeam, enemyTeam });
@@ -234,19 +219,22 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
                     setTimeout(resetBallToHand, 1200);
 
                 } else {
-                    // DIG
+                    // DIG (ЗАЩИТА)
                     let digPos;
                     if (data.trajectory?.endId) digPos = getPlayerCoordinates(data.trajectory.endId, myTeam, enemyTeam);
                     else digPos = getBallTargetCoordinates('ZONE', { zoneId: 6, isMySide: !isMyAttack }, { myTeam, enemyTeam });
                     await moveBall(digPos, 'SPIKE'); 
                     
+                    // !!! ПРОВЕРКА НА ПЕРЕЛЕТ СЕТКИ ПО ТЕКСТУ !!!
                     const isOverpass = data.message && data.message.includes("перелетел сетку");
+                    
                     if (isOverpass) {
                         const overpassPos = getBallTargetCoordinates('ZONE', { zoneId: 6, isMySide: isMyAttack }, { myTeam, enemyTeam });
                         await moveBall(overpassPos, 'RECEIVE');
                         const counterSetterPos = getBallTargetCoordinates('SETTER_ZONE', { isMySide: isMyAttack }, { myTeam, enemyTeam });
                         await moveBall(counterSetterPos, 'RECEIVE');
                     } else {
+                        // ВО ВСЕХ ОСТАЛЬНЫХ СЛУЧАЯХ -> К СОЮЗНОМУ СЕТТЕРУ
                         const isMyDefense = !isMyAttack;
                         const setterPos = getBallTargetCoordinates('SETTER_ZONE', { isMySide: isMyDefense }, { myTeam, enemyTeam });
                         await moveBall(setterPos, 'RECEIVE');
@@ -259,7 +247,6 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
 
     return (
         <>
-            {/* ТЕНЬ */}
             <motion.div
                 animate={controlsShadow}
                 initial={{ opacity: 0, scale: 0 }}
@@ -270,8 +257,6 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
                     filter: 'blur(3px)', zIndex: 9, pointerEvents: 'none'
                 }}
             />
-            
-            {/* ОСНОВНОЙ КОНТЕЙНЕР (X/Y) */}
             <motion.div
                 animate={controlsX}
                 initial={{ left: '50%', top: '50%' }}
@@ -281,21 +266,13 @@ const BallManager = ({ lastAction, myTeam, enemyTeam, phase, turn, myId }) => {
                     display: 'flex', justifyContent: 'center', alignItems: 'center'
                 }}
             >
-                {/* КОНТЕЙНЕР ИСКРИВЛЕНИЯ */}
                 <motion.div animate={controlsOffset} style={{ display:'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    {/* КОНТЕЙНЕР ВЫСОТЫ */}
                     <motion.div animate={controlsScale} style={{display:'flex', justifyContent:'center', alignItems:'center'}}>
-                        {/* КОНТЕЙНЕР СПЛЮЩИВАНИЯ */}
                         <motion.div animate={controlsSquash} style={{display:'flex', justifyContent:'center', alignItems:'center'}}>
-                            {/* ВРАЩЕНИЕ */}
                             <motion.div 
                                 animate={controlsRotate} 
-                                style={{ 
-                                    width: '24px', height: '24px', 
-                                    transformOrigin: 'center center'
-                                }}
+                                style={{ width: '24px', height: '24px', transformOrigin: 'center center' }}
                             >
-                                {/* SVG МЯЧ */}
                                 <svg viewBox="0 0 100 100" width="100%" height="100%" style={{ overflow: 'visible' }}>
                                     <defs>
                                         <radialGradient id="ballGrad" cx="30%" cy="30%" r="80%">
