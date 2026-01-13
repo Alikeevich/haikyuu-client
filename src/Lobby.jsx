@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
+import AISelector from './AISelector';
 
 function Lobby({ socket, roomId, setRoomId }) {
     const [inputCode, setInputCode] = useState("");
     const [isCopied, setIsCopied] = useState(false);
+    const [showAISelector, setShowAISelector] = useState(false);
 
     const createGame = () => {
         socket.emit('create_game');
     };
 
-    const createAIGame = () => {
-        socket.emit('create_ai_game');
+    const createAIGame = (aiType) => {
+        socket.emit('create_ai_game', { aiType });
     };
 
     const joinGame = () => {
@@ -25,7 +27,6 @@ function Lobby({ socket, roomId, setRoomId }) {
             setIsCopied(true);
             setTimeout(() => setIsCopied(false), 2000);
         } else {
-            // Фоллбэк для старых браузеров или HTTP
             const textArea = document.createElement("textarea");
             textArea.value = roomId;
             document.body.appendChild(textArea);
@@ -36,6 +37,19 @@ function Lobby({ socket, roomId, setRoomId }) {
             setTimeout(() => setIsCopied(false), 2000);
         }
     };
+
+    // --- СЕЛЕКТОР ИИ ---
+    if (showAISelector) {
+        return (
+            <AISelector 
+                onSelect={(aiType) => {
+                    createAIGame(aiType);
+                    setShowAISelector(false);
+                }}
+                onBack={() => setShowAISelector(false)}
+            />
+        );
+    }
 
     // --- ЭКРАН ОЖИДАНИЯ (Room Created) ---
     if (roomId && !roomId.startsWith('AI-')) {
@@ -80,9 +94,9 @@ function Lobby({ socket, roomId, setRoomId }) {
                 <div className="lobby-card featured">
                     <div className="card-content">
                         <h3>ТРЕНИРОВКА</h3>
-                        <p>Матч против компьютера</p>
+                        <p>Выбери ИИ противника</p>
                     </div>
-                    <button className="btn-ai" onClick={createAIGame}>
+                    <button className="btn-ai" onClick={() => setShowAISelector(true)}>
                         ИГРАТЬ VS AI 🤖
                     </button>
                 </div>
