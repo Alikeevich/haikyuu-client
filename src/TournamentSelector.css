@@ -1,0 +1,108 @@
+.tournament-selector-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: white;
+}
+
+.tournament-intro {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 600px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+}
+
+.trophy-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+
+.tournament-intro h1 {
+    font-size: 3em;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #f39c12, #e74c3c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.tournament-intro .subtitle {
+    font-size: 1.2em;
+    color: #bbb;
+    margin-bottom: 30px;
+}
+
+.tournament-rules {
+    background: rgba(243, 156, 18, 0.05);
+    border-left: 4px solid #f39c12;
+    padding: 20px;
+    margin: 30px 0;
+    border-radius: 8px;
+    text-align: left;
+}
+
+.tournament-rules h3 {
+    margin-top: 0;
+    color: #f39c12;
+}
+
+.tournament-rules ul {
+    list-style: none;
+    padding: 0;
+}
+
+.tournament-rules li {
+    padding: 8px 0;
+    font-size: 1em;
+}
+
+.button-group {
+    display: flex;
+    gap: 15px;
+    flex-direction: column;
+    margin-top: 30px;
+}
+
+.btn-tournament-start {
+    padding: 15px 30px;
+    background: linear-gradient(135deg, #f39c12, #e74c3c);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: bold;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-tournament-start:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(243, 156, 18, 0.4);
+}
+
+.btn-secondary {
+    padding: 12px 25px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+}

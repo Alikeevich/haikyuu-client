@@ -7,6 +7,8 @@ import './App.css';
 import MusicPlayer from './MusicPlayer';
 import GameOver from './GameOver';
 import AIEffects from './AIEffects';
+import TournamentBracket from './TournamentBracket';
+import TournamentFinish from './TournamentFinish';
 import { playSound } from './SoundManager';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3001";
@@ -32,6 +34,12 @@ function App() {
     const [lastAction, setLastAction] = useState(null);
     const [isActionPending, setActionPending] = useState(false);
     
+    // 🏆 НОВОЕ: Состояния для турнира
+    const [isTournament, setIsTournament] = useState(false);
+    const [tournamentData, setTournamentData] = useState(null);
+    const [tournamentFinished, setTournamentFinished] = useState(null);
+    const [currentMatchId, setCurrentMatchId] = useState(null);
+    
     // 🤖 НОВОЕ: Состояния для AI эффектов
     const [aiEffect, setAIEffect] = useState(null);
     const [aiEffectData, setAIEffectData] = useState({});
@@ -49,6 +57,7 @@ function App() {
             setAllCharacters(data.allCharacters);
             setGameState('draft');
             setRoomId(data.roomId);
+            setIsTournament(data.isTournament || false);
             setNotification("Драфт начался! Выбирай карты.");
         };
 
@@ -63,6 +72,11 @@ function App() {
 
             setTurn(data.turn);
             setScore(data.score);
+            
+            if (data.isTournament) {
+                setCurrentMatchId(data.matchId);
+            }
+            
             setGameState('match');
             setNotification("Матч начинается!");
             setPhase('SERVE');
@@ -73,6 +87,30 @@ function App() {
         const onGameOver = (data) => {
             playSound('whistle');
             setGameOverData(data);
+        };
+
+        // 🏆 ТУРНИР: Турнир начался
+        const onTournamentStarted = (data) => {
+            setTournamentData(data.tournament);
+            setGameState('tournament');
+            setNotification("Турнир начался!");
+        };
+
+        // 🏆 ТУРНИР: Результат матча
+        const onMatchResult = (data) => {
+            setTournamentData(data.tournament);
+            setNotification(data.playerWon ? '✅ Матч выигран!' : '❌ Матч проигран!');
+        };
+
+        // 🏆 ТУРНИР: Следующий матч
+        const onNextTournamentMatch = (data) => {
+            setNotification(`Следующий противник: ${data.aiType}`);
+        };
+
+        // 🏆 ТУРНИР: Турнир закончен
+        const onTournamentFinished = (data) => {
+            setTournamentFinished(data);
+            setNotification('Турнир закончен!');
         };
 
         // 🤖 НОВОЕ: Слушатель AI эффектов
@@ -94,6 +132,10 @@ function App() {
         socket.on('game_over', onGameOver);
         socket.on('draft_turn', (data) => setDraftTurn(data.turn));
         socket.on('ai_effect', onAIEffect);
+        socket.on('tournament_started', onTournamentStarted);
+        socket.on('match_result', onMatchResult);
+        socket.on('next_tournament_match', onNextTournamentMatch);
+        socket.on('tournament_finished', onTournamentFinished);
 
         return () => {
             socket.off('connect');
@@ -104,6 +146,10 @@ function App() {
             socket.off('draft_turn');
             socket.off('error_message');
             socket.off('ai_effect');
+            socket.off('tournament_started');
+            socket.off('match_result');
+            socket.off('next_tournament_match');
+            socket.off('tournament_finished');
         };
     }, []);
 
@@ -312,6 +358,10 @@ function App() {
         window.location.reload();
     };
 
+    const handlePlayTournamentMatch = (matchId, aiType) => {
+        socket.emit('start_tournament_match', { roomId, matchId });
+    };
+
     return (
         <div className="app">
             {notification && <div className="notification">{notification}</div>}
@@ -322,6 +372,14 @@ function App() {
 
             {gameState === 'draft' && (
                 <Draft socket={socket} roomId={roomId} allCharacters={allCharacters} myId={myId} draftTurn={draftTurn} />
+            )}
+
+            {gameState === 'tournament' && tournamentData && !tournamentFinished && (
+                <TournamentBracket 
+                    tournament={tournamentData}
+                    onPlayMatch={handlePlayTournamentMatch}
+                    isPlaying={gameState === 'match'}
+                />
             )}
 
             {gameState === 'match' && (
@@ -344,13 +402,19 @@ function App() {
                         triggerLegendary={triggerLegendary}
                         isActionPending={isActionPending}
                     />
-                    {gameOverData && (
+                    {gameOverData && !isTournament && (
                         <GameOver data={gameOverData} onRestart={handleRestart} />
                     )}
                     
-                    {/* 🤖 НОВОЕ: AI эффекты */}
                     <AIEffects effect={aiEffect} data={aiEffectData} />
                 </>
+            )}
+
+            {tournamentFinished && (
+                <TournamentFinish 
+                    tournament={tournamentFinished}
+                    onRestart={handleRestart}
+                />
             )}
             
             <MusicPlayer />

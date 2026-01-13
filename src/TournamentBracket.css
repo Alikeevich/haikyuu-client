@@ -1,0 +1,146 @@
+.tournament-bracket-container {
+    padding: 40px 20px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    min-height: 100vh;
+    color: white;
+}
+
+.bracket-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.bracket-header h2 {
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #f39c12, #e74c3c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.tournament-score {
+    font-size: 1.2em;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.tournament-score .wins {
+    color: #2ecc71;
+}
+
+.tournament-score .losses {
+    color: #e74c3c;
+}
+
+.bracket-matches {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.match-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.match-card:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-5px);
+}
+
+.match-card.active {
+    border-color: #f39c12;
+    background: rgba(243, 156, 18, 0.1);
+    box-shadow: 0 0 20px rgba(243, 156, 18, 0.3);
+}
+
+.match-card.completed {
+    opacity: 0.8;
+}
+
+.match-number {
+    font-size: 0.9em;
+    color: #bbb;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.match-opponent {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+    border-left: 4px solid;
+    margin: 15px 0;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 6px;
+}
+
+.emoji {
+    font-size: 2em;
+}
+
+.name {
+    font-weight: bold;
+    font-size: 0.95em;
+}
+
+.match-result {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.match-result.WIN {
+    background: rgba(46, 204, 113, 0.2);
+}
+
+.match-result.LOSS {
+    background: rgba(231, 76, 60, 0.2);
+}
+
+.match-result .score {
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.match-result .status {
+    font-size: 0.9em;
+}
+
+.btn-play-match {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #f39c12, #e74c3c);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+}
+
+.btn-play-match:hover {
+    transform: scale(1.05);
+}
+
+.match-status {
+    margin-top: 10px;
+    padding: 8px;
+    text-align: center;
+    font-size: 0.9em;
+    color: #f39c12;
+    background: rgba(243, 156, 18, 0.1);
+    border-radius: 4px;
+}

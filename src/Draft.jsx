@@ -9,7 +9,7 @@ const POSITIONS = [
     { id: 6, name: "ЗАЩИТА ЦЕНТР (Pos 6)", role: "DEF" },
 ];
 
-function Draft({ socket, roomId, allCharacters, myId, draftTurn }) {
+function Draft({ socket, roomId, allCharacters, myId, draftTurn, isTournament }) {
     const [currentSlot, setCurrentSlot] = useState(0); 
     const [myTeam, setMyTeam] = useState([]); 
     const [options, setOptions] = useState([]); 
@@ -102,7 +102,11 @@ function Draft({ socket, roomId, allCharacters, myId, draftTurn }) {
         setMyTeam(updatedTeam);
         setIsMyTurn(false); // ждём ход соперника
 
-        socket.emit('character_picked', { roomId, charId: char.id });
+        if (isTournament) {
+            socket.emit('tournament_character_picked', { roomId, charId: char.id });
+        } else {
+            socket.emit('character_picked', { roomId, charId: char.id });
+        }
         
         setCurrentSlot(currentSlot + 1); 
         setHoveredChar(null); // Убираем подсветку
@@ -110,7 +114,11 @@ function Draft({ socket, roomId, allCharacters, myId, draftTurn }) {
 
     const finishDraft = () => {
         setWaiting(true);
-        socket.emit('team_ready', { roomId, team: myTeam });
+        if (isTournament) {
+            socket.emit('tournament_team_ready', { roomId, team: myTeam });
+        } else {
+            socket.emit('team_ready', { roomId, team: myTeam });
+        }
     };
 
     const renderImg = (char) => {
