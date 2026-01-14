@@ -38,36 +38,13 @@ function Draft({ socket, roomId, allCharacters, myId, draftTurn, isTournament })
 
     useEffect(() => {
         const handleBannedChars = (ids) => {
-            console.log('[Draft socket] banned_characters ->', ids);
             setBannedIds(ids);
         };
 
-        const handlePickResult = (res) => {
-            console.log('[Draft socket] pick_result ->', res);
-            if (!res.success) {
-                // Откатываем оптимистичный пик, если он был
-                setMyTeam(prev => {
-                    if (prev.length > 0 && prev[prev.length - 1].id === res.charId) {
-                        return prev.slice(0, -1);
-                    }
-                    return prev;
-                });
-                setCurrentSlot(prev => Math.max(0, prev - 1));
-                setIsMyTurn(true);
-
-                if (res.reason === 'not_your_turn') alert('Пик отклонён: сейчас не ваш ход');
-                else if (res.reason === 'already_picked') alert('Пик отклонён: персонаж уже выбран');
-                else if (res.reason === 'processing') alert('Пик отклонён: идёт обработка, попробуйте чуть позже');
-                else alert('Пик отклонён');
-            }
-        };
-
         socket.on('banned_characters', handleBannedChars);
-        socket.on('pick_result', handlePickResult);
 
         return () => {
             socket.off('banned_characters', handleBannedChars);
-            socket.off('pick_result', handlePickResult);
         };
     }, [socket]);
 
@@ -117,10 +94,8 @@ function Draft({ socket, roomId, allCharacters, myId, draftTurn, isTournament })
     }, [currentSlot, bannedIds]);
 
     const selectPlayer = (char) => {
-        console.log(`[Draft] selectPlayer: char=${char.id}, slot=${currentSlot}, isMyTurn=${isMyTurn}, isTournament=${isTournament}`);
-        
-        // ✅ В ТУРНИРЕ ПРОТИВ ИИ НЕ ПРОВЕРЯЕМ ХОД - игрок всегда может пикать
-        if (!isTournament && !isMyTurn) {
+        console.log(`[Draft] selectPlayer attempt: char=${char.id} slot=${currentSlot} isMyTurn=${isMyTurn} draftTurnProp=${draftTurn}`);
+        if (!isMyTurn) {
             alert('Сейчас не ваш ход в драфте');
             return;
         }
@@ -128,11 +103,7 @@ function Draft({ socket, roomId, allCharacters, myId, draftTurn, isTournament })
         const newPlayer = { ...char, position: POSITIONS[currentSlot].id };
         const updatedTeam = [...myTeam, newPlayer];
         setMyTeam(updatedTeam);
-        
-        // ✅ В ТУРНИРЕ НЕ МЕНЯЕМ isMyTurn - он всегда true
-        if (!isTournament) {
-            setIsMyTurn(false);
-        }
+        setIsMyTurn(false); // ждём ход соперника
 
         if (isTournament) {
             socket.emit('tournament_character_picked', { roomId, charId: char.id });
@@ -141,7 +112,7 @@ function Draft({ socket, roomId, allCharacters, myId, draftTurn, isTournament })
         }
         
         setCurrentSlot(currentSlot + 1); 
-        setHoveredChar(null);
+        setHoveredChar(null); // Убираем подсветку
     };
 
     const finishDraft = () => {
@@ -199,24 +170,14 @@ function Draft({ socket, roomId, allCharacters, myId, draftTurn, isTournament })
                 {options.map((char) => {
                     const isBanned = bannedIds.includes(char.id);
                     return (
-                            <div 
-                                key={char.id} 
-                                className={`draft-card-big ${hoveredChar?.id === char.id ? 'hovered' : ''} ${isBanned ? 'banned' : ''}`}
-                                onClick={() => { 
-                                    if (!isBanned) { // В турнире проверяем только banned
-                                        if (isTournament || isMyTurn) { // В PvP проверяем ход
-                                            selectPlayer(char);
-                                        }
-                                    }
-                                }}
-                                onMouseEnter={() => { 
-                                    if (!isBanned && (isTournament || isMyTurn)) {
-                                        setHoveredChar(char);
-                                    }
-                                }}
-                                onMouseLeave={() => setHoveredChar(null)}
-                                style={{ cursor: isBanned || (!isTournament && !isMyTurn) ? 'not-allowed' : 'pointer' }}
-                            >
+                        <div 
+                            key={char.id} 
+                            className={`draft-card-big ${hoveredChar?.id === char.id ? 'hovered' : ''} ${isBanned ? 'banned' : ''}`}
+                            onClick={() => { if (!isBanned && isMyTurn) selectPlayer(char); }}
+                            onMouseEnter={() => { if (!isBanned && isMyTurn) setHoveredChar(char); }}
+                            onMouseLeave={() => setHoveredChar(null)}
+                            style={{ cursor: isBanned || !isMyTurn ? 'not-allowed' : 'pointer' }}
+                        >
                             {isBanned && <div className="banned-overlay">ЗАНЯТ</div>}
                             <div className="draft-photo">
                                 {renderImg(char)}

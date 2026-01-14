@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import AISelector from './AISelector';
-import TournamentSelector from './TournamentSelector';
 
 function Lobby({ socket, roomId, setRoomId }) {
     const [inputCode, setInputCode] = useState("");
     const [isCopied, setIsCopied] = useState(false);
     const [showAISelector, setShowAISelector] = useState(false);
-    const [showTournamentSelector, setShowTournamentSelector] = useState(false);
 
     const createGame = () => {
         socket.emit('create_game');
@@ -14,11 +12,6 @@ function Lobby({ socket, roomId, setRoomId }) {
 
     const createAIGame = (aiType) => {
         socket.emit('create_ai_game', { aiType });
-    };
-
-    const createTournament = () => {
-        socket.emit('create_tournament', {});
-        setShowTournamentSelector(false);
     };
 
     const joinGame = () => {
@@ -45,16 +38,6 @@ function Lobby({ socket, roomId, setRoomId }) {
         }
     };
 
-    // --- СЕЛЕКТОР ТУРНИРА ---
-    if (showTournamentSelector) {
-        return (
-            <TournamentSelector 
-                onStart={createTournament}
-                onBack={() => setShowTournamentSelector(false)}
-            />
-        );
-    }
-
     // --- СЕЛЕКТОР ИИ ---
     if (showAISelector) {
         return (
@@ -69,7 +52,7 @@ function Lobby({ socket, roomId, setRoomId }) {
     }
 
     // --- ЭКРАН ОЖИДАНИЯ (Room Created) ---
-    if (roomId && !roomId.startsWith('AI-') && !roomId.startsWith('TOUR-')) {
+    if (roomId && !roomId.startsWith('AI-')) {
         return (
             <div className="lobby-container lobby-waiting">
                 <div className="lobby-header">
@@ -107,18 +90,7 @@ function Lobby({ socket, roomId, setRoomId }) {
             </div>
             
             <div className="lobby-menu">
-                {/* 1. ТУРНИР */}
-                <div className="lobby-card featured tournament-card">
-                    <div className="card-content">
-                        <h3>ТУРНИР</h3>
-                        <p>Вызовите всех ИИ подряд</p>
-                    </div>
-                    <button className="btn-tournament" onClick={() => setShowTournamentSelector(true)}>
-                        ТУРНИР 🏆
-                    </button>
-                </div>
-
-                {/* 2. ТРЕНИРОВКА */}
+                {/* 1. ИГРА ПРОТИВ ИИ */}
                 <div className="lobby-card featured">
                     <div className="card-content">
                         <h3>ТРЕНИРОВКА</h3>
@@ -131,14 +103,14 @@ function Lobby({ socket, roomId, setRoomId }) {
 
                 <div className="divider"><span>PvP РЕЖИМ</span></div>
 
-                {/* 3. СОЗДАТЬ ИГРУ */}
+                {/* 2. СОЗДАТЬ ИГРУ */}
                 <div className="lobby-card">
                     <button className="btn-primary full-width" onClick={createGame}>
                         СОЗДАТЬ КОМНАТУ 🏠
                     </button>
                 </div>
 
-                {/* 4. ВОЙТИ ПО КОДУ */}
+                {/* 3. ВОЙТИ ПО КОДУ */}
                 <div className="lobby-card join-card">
                     <input 
                         type="text" 

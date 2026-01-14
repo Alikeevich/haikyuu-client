@@ -7,8 +7,6 @@ import './App.css';
 import MusicPlayer from './MusicPlayer';
 import GameOver from './GameOver';
 import AIEffects from './AIEffects';
-import TournamentBracket from './TournamentBracket';
-import TournamentFinish from './TournamentFinish';
 import { playSound } from './SoundManager';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3001";
@@ -34,23 +32,10 @@ function App() {
     const [lastAction, setLastAction] = useState(null);
     const [isActionPending, setActionPending] = useState(false);
     
-    // 🏆 Состояния для турнира
-    const [isTournament, setIsTournament] = useState(false);
-    const [tournamentData, setTournamentData] = useState(null);
-    const [tournamentFinished, setTournamentFinished] = useState(null);
-    const [currentMatchId, setCurrentMatchId] = useState(null);
-    const [activeGameRoomId, setActiveGameRoomId] = useState(""); // Комната текущего матча
-    
-    // 🤖 Состояния для AI эффектов
+    // 🤖 НОВОЕ: Состояния для AI эффектов
     const [aiEffect, setAIEffect] = useState(null);
     const [aiEffectData, setAIEffectData] = useState({});
 
-    // ✅ ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ ПРАВИЛЬНОГО roomId
-    const getActiveRoomId = () => {
-        return activeGameRoomId || roomId;
-    };
-
-    // ========== ОСНОВНЫЕ СОБЫТИЯ ИГРЫ ==========
     useEffect(() => {
         socket.on('connect', () => setMyId(socket.id));
         socket.on('error_message', (msg) => alert(msg));
@@ -64,7 +49,6 @@ function App() {
             setAllCharacters(data.allCharacters);
             setGameState('draft');
             setRoomId(data.roomId);
-            setIsTournament(data.isTournament || false);
             setNotification("Драфт начался! Выбирай карты.");
         };
 
@@ -79,17 +63,6 @@ function App() {
 
             setTurn(data.turn);
             setScore(data.score);
-            
-            // ✅ Используем gameRoomId из события (если есть)
-            if (data.isTournament) {
-                setCurrentMatchId(data.matchId);
-                const matchRoomId = data.gameRoomId || (roomId + '-M' + data.matchId);
-                setActiveGameRoomId(matchRoomId);
-                console.log(`🏆 [TOURNAMENT] Match room: ${matchRoomId}`);
-            } else {
-                setActiveGameRoomId(roomId);
-            }
-            
             setGameState('match');
             setNotification("Матч начинается!");
             setPhase('SERVE');
@@ -99,51 +72,16 @@ function App() {
 
         const onGameOver = (data) => {
             playSound('whistle');
-            
-            // ✅ В турнире показываем результат, возврат делает match_result
             setGameOverData(data);
         };
 
-        // 🏆 ТУРНИР: Турнир начался
-        const onTournamentStarted = (data) => {
-            setTournamentData(data.tournament);
-            setGameState('tournament');
-            setNotification("Турнир начался!");
-        };
-
-        // 🏆 ТУРНИР: Результат матча
-        const onMatchResult = (data) => {
-            setTournamentData(data.tournament);
-            setNotification(data.playerWon ? '✅ Матч выигран!' : '❌ Матч проигран!');
-            
-            // ✅ Сбрасываем activeGameRoomId после завершения матча
-            setActiveGameRoomId('');
-            
-            // ✅ Возвращаемся к турниру через 3 секунды
-            setTimeout(() => {
-                setGameState('tournament');
-                setGameOverData(null);
-            }, 3000);
-        };
-
-        // 🏆 ТУРНИР: Следующий матч
-        const onNextTournamentMatch = (data) => {
-            setNotification(`Следующий противник: ${data.aiType}`);
-        };
-
-        // 🏆 ТУРНИР: Турнир закончен
-        const onTournamentFinished = (data) => {
-            setTournamentFinished(data);
-            setGameState('tournament');
-            setNotification('Турнир закончен!');
-        };
-
-        // 🤖 Слушатель AI эффектов
+        // 🤖 НОВОЕ: Слушатель AI эффектов
         const onAIEffect = (data) => {
             console.log('🎨 AI Effect:', data);
             setAIEffect(data.type);
             setAIEffectData(data.data || {});
             
+            // Автоматически сбрасываем через 2 секунды
             setTimeout(() => {
                 setAIEffect(null);
                 setAIEffectData({});
@@ -154,18 +92,8 @@ function App() {
         socket.on('game_started', onGameStarted);
         socket.on('match_start', onMatchStart);
         socket.on('game_over', onGameOver);
-        socket.on('draft_turn', (data) => {
-            console.log(`[SOCKET] draft_turn -> ${data.turn}`);
-            setDraftTurn(data.turn);
-        });
-        socket.on('banned_characters', (ids) => {
-            console.log('[SOCKET] banned_characters ->', ids);
-        });
+        socket.on('draft_turn', (data) => setDraftTurn(data.turn));
         socket.on('ai_effect', onAIEffect);
-        socket.on('tournament_started', onTournamentStarted);
-        socket.on('match_result', onMatchResult);
-        socket.on('next_tournament_match', onNextTournamentMatch);
-        socket.on('tournament_finished', onTournamentFinished);
 
         return () => {
             socket.off('connect');
@@ -174,17 +102,11 @@ function App() {
             socket.off('match_start');
             socket.off('game_over');
             socket.off('draft_turn');
-            socket.off('banned_characters');
             socket.off('error_message');
             socket.off('ai_effect');
-            socket.off('tournament_started');
-            socket.off('match_result');
-            socket.off('next_tournament_match');
-            socket.off('tournament_finished');
         };
-    }, [roomId]);
+    }, []);
 
-    // ========== ИГРОВЫЕ СОБЫТИЯ ==========
     useEffect(() => {
         const onServeResult = (data) => {
             console.log('🎾 SERVE RESULT:', data.message);
@@ -218,7 +140,7 @@ function App() {
                 playSound('bump');
             }
             
-            // 🤖 Wild Card эффект
+            // 🤖 НОВОЕ: Wild Card эффект
             if (msg.includes('wild card')) {
                 setAIEffect('WILD_CARD');
                 setTimeout(() => setAIEffect(null), 2000);
@@ -239,7 +161,7 @@ function App() {
             setLastAction({ type: 'SET', actorId: data.setterId, targetPos: data.targetPos, ts: Date.now() });
             setActionPending(false);
             
-            // 🤖 Feint Shot эффект
+            // 🤖 НОВОЕ: Feint Shot эффект
             const msg = data.message.toLowerCase();
             if (msg.includes('feint') || msg.includes('сброс')) {
                 setAIEffect('FEINT');
@@ -283,6 +205,7 @@ function App() {
             setLastAction({ type: 'SPIKE', ts: Date.now(), data: data });
             
             const msg = data.message.toLowerCase();
+            const details = (data.details || '').toLowerCase();
 
             if (data.isCritical) {
                 setTriggerShake(true);
@@ -294,7 +217,7 @@ function App() {
                 setTimeout(() => setTriggerLegendary(false), 600);
             }
 
-            // 🤖 Обнаружение AI эффектов в сообщениях
+            // 🤖 НОВОЕ: Обнаружение AI эффектов в сообщениях
             if (msg.includes('синхронный блок') || msg.includes('synchronized')) {
                 setAIEffect('SYNC_BLOCK');
                 setAIEffectData({ blockPos: data.blockPos });
@@ -331,7 +254,7 @@ function App() {
             }
         };
 
-        // 🤖 Слушатель системных логов (для Analysis Mode)
+        // 🤖 НОВОЕ: Слушатель системных логов (для Analysis Mode)
         const onGameLogMessage = (data) => {
             if (data.message.includes('SYSTEM CALIBRATED')) {
                 const bonusMatch = data.message.match(/\+(\d+)%/);
@@ -360,7 +283,6 @@ function App() {
         };
     }, [myTeamIndex]);
 
-    // ========== УВЕДОМЛЕНИЯ ==========
     useEffect(() => {
         if (notification) {
             const timer = setTimeout(() => setNotification(""), 4000);
@@ -368,34 +290,28 @@ function App() {
         }
     }, [notification]);
 
-    // ========== ОБРАБОТЧИКИ ДЕЙСТВИЙ ==========
     const handleServe = () => {
         if (isActionPending) return;
         setActionPending(true);
-        socket.emit('action_serve', { roomId: getActiveRoomId() });
+        socket.emit('action_serve', { roomId });
     };
     
     const handleSet = (targetPos) => {
         if (isActionPending) return;
         setActionPending(true);
-        socket.emit('action_set', { roomId: getActiveRoomId(), targetPos });
+        socket.emit('action_set', { roomId, targetPos });
     };
     
     const handleBlock = (blockPos) => {
         if (isActionPending) return;
         setActionPending(true);
-        socket.emit('action_block', { roomId: getActiveRoomId(), blockPos });
+        socket.emit('action_block', { roomId, blockPos });
     };
     
     const handleRestart = () => {
         window.location.reload();
     };
 
-    const handlePlayTournamentMatch = (matchId, aiType) => {
-        socket.emit('start_tournament_match', { roomId, matchId });
-    };
-
-    // ========== RENDER ==========
     return (
         <div className="app">
             {notification && <div className="notification">{notification}</div>}
@@ -405,22 +321,7 @@ function App() {
             )}
 
             {gameState === 'draft' && (
-                <Draft 
-                    socket={socket} 
-                    roomId={roomId} 
-                    allCharacters={allCharacters} 
-                    myId={myId} 
-                    draftTurn={draftTurn} 
-                    isTournament={isTournament}
-                />
-            )}
-
-            {gameState === 'tournament' && tournamentData && !tournamentFinished && (
-                <TournamentBracket 
-                    tournament={tournamentData}
-                    onPlayMatch={handlePlayTournamentMatch}
-                    isPlaying={gameState === 'match'}
-                />
+                <Draft socket={socket} roomId={roomId} allCharacters={allCharacters} myId={myId} draftTurn={draftTurn} />
             )}
 
             {gameState === 'match' && (
@@ -444,25 +345,12 @@ function App() {
                         isActionPending={isActionPending}
                     />
                     {gameOverData && (
-                        <GameOver 
-                            data={gameOverData} 
-                            onRestart={isTournament ? () => {
-                                setGameOverData(null);
-                                setGameState('tournament');
-                            } : handleRestart}
-                            isTournament={isTournament}
-                        />
+                        <GameOver data={gameOverData} onRestart={handleRestart} />
                     )}
                     
+                    {/* 🤖 НОВОЕ: AI эффекты */}
                     <AIEffects effect={aiEffect} data={aiEffectData} />
                 </>
-            )}
-
-            {tournamentFinished && (
-                <TournamentFinish 
-                    tournament={tournamentFinished}
-                    onRestart={handleRestart}
-                />
             )}
             
             <MusicPlayer />
